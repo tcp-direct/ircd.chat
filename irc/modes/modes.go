@@ -17,7 +17,7 @@ var (
 	// SupportedUserModes are the user modes that we actually support (modifying).
 	SupportedUserModes = Modes{
 		Bot, Invisible, Operator, RegisteredOnly, ServerNotice, UserRoleplaying,
-		UserNoCTCP,
+		UserNoCTCP, Cloaked,
 	}
 
 	// SupportedChannelModes are the channel modes that we support.
@@ -109,6 +109,7 @@ const (
 	UserNoCTCP      Mode = 'T'
 	UserRoleplaying Mode = 'E'
 	WallOps         Mode = 'w'
+	Cloaked		Mode = 'x'
 )
 
 // Channel Modes

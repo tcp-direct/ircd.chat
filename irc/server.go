@@ -57,7 +57,7 @@ var (
 	// will also need to be reflected in CasefoldChannel
 	chanTypes = "#"
 
-	throttleMessage = "You have attempted to connect too many times within a short duration. Wait a while, and you will be able to connect."
+	throttleMessage = "Connections from your IP are being ratelimited. Wait a while, and you will be able to connect."
 )
 
 // Server is the main Oragono server.
@@ -168,7 +168,7 @@ func (server *Server) checkBans(config *Config, ipaddr net.IP, checkScripts bool
 
 	if server.Defcon() == 1 {
 		if !utils.IPInNets(ipaddr, server.Config().Server.secureNets) {
-			return true, false, "New connections to this server are temporarily restricted"
+			return true, false, "DEFCON: New connections to this server are temporarily restricted"
 		}
 	}
 
@@ -182,7 +182,7 @@ func (server *Server) checkBans(config *Config, ipaddr net.IP, checkScripts bool
 			return false, true, info.BanMessage("You must authenticate with SASL to connect from this IP (%s)")
 		} else {
 			server.logger.Info("connect-ip", "Client rejected by d-line", ipaddr.String())
-			return true, false, info.BanMessage("You are banned from this server (%s)")
+			return true, false, info.BanMessage("you got klined. reach out if it was a mistake. (%s)")
 		}
 	}
 
@@ -346,7 +346,7 @@ func (server *Server) tryRegister(c *Client, session *Session) (exiting bool) {
 	if !session.IP().IsLoopback() || session.isTor {
 		isBanned, info := server.klines.CheckMasks(c.AllNickmasks()...)
 		if isBanned {
-			c.Quit(info.BanMessage(c.t("You are banned from this server (%s)")), nil)
+			c.Quit(info.BanMessage(c.t("you got klined. reach out if it was a mistake. (%s)")), nil)
 			return true
 		}
 	}
@@ -358,9 +358,9 @@ func (server *Server) tryRegister(c *Client, session *Session) (exiting bool) {
 func (server *Server) playSTSBurst(session *Session) {
 	nick := utils.SafeErrorParam(session.client.preregNick)
 	session.Send(nil, server.name, RPL_WELCOME, nick, fmt.Sprintf("Welcome to the Internet Relay Network %s", nick))
-	session.Send(nil, server.name, RPL_YOURHOST, nick, fmt.Sprintf("Your host is %[1]s, running version %[2]s", server.name, "ergo"))
+	session.Send(nil, server.name, RPL_YOURHOST, nick, fmt.Sprintf("Your host is %[1]s, running version %[2]s", server.name, "ircd"))
 	session.Send(nil, server.name, RPL_CREATED, nick, fmt.Sprintf("This server was created %s", time.Time{}.Format(time.RFC1123)))
-	session.Send(nil, server.name, RPL_MYINFO, nick, server.name, "ergo", "o", "o", "o")
+	session.Send(nil, server.name, RPL_MYINFO, nick, server.name, "ircd", "o", "o", "o")
 	session.Send(nil, server.name, RPL_ISUPPORT, nick, "CASEMAPPING=ascii", "are supported by this server")
 	session.Send(nil, server.name, ERR_NOMOTD, nick, "MOTD is unavailable")
 	for _, line := range server.Config().Server.STS.bannerLines {
@@ -382,9 +382,9 @@ func (server *Server) playRegistrationBurst(session *Session) {
 	//NOTE(dan): we specifically use the NICK here instead of the nickmask
 	// see http://modern.ircdocs.horse/#rplwelcome-001 for details on why we avoid using the nickmask
 	config := server.Config()
-	session.Send(nil, server.name, RPL_WELCOME, d.nick, fmt.Sprintf(c.t("Welcome to the %s IRC Network %s"), config.Network.Name, d.nick))
+	session.Send(nil, server.name, RPL_WELCOME, d.nick, fmt.Sprintf(c.t("Welcome to the %s Network %s"), config.Network.Name, d.nick))
 	session.Send(nil, server.name, RPL_YOURHOST, d.nick, fmt.Sprintf(c.t("Your host is %[1]s, running version %[2]s"), server.name, Ver))
-	session.Send(nil, server.name, RPL_CREATED, d.nick, fmt.Sprintf(c.t("This server was created %s"), server.ctime.Format(time.RFC1123)))
+	session.Send(nil, server.name, RPL_CREATED, d.nick, fmt.Sprintf(c.t("Compiled this bad boy at %s"), server.ctime.Format(time.RFC1123)))
 	session.Send(nil, server.name, RPL_MYINFO, d.nick, server.name, Ver, rplMyInfo1, rplMyInfo2, rplMyInfo3)
 
 	rb := NewResponseBuffer(session)
@@ -399,10 +399,6 @@ func (server *Server) playRegistrationBurst(session *Session) {
 	}
 
 	c.attemptAutoOper(session)
-
-	if server.logger.IsLoggingRawIO() {
-		session.Send(nil, c.server.name, "NOTICE", d.nick, c.t("This server is in debug mode and is logging all user I/O. If you do not wish for everything you send to be readable by the server owner(s), please disconnect."))
-	}
 }
 
 // RplISupport outputs our ISUPPORT lines to the client. This is used on connection and in VERSION responses.
@@ -440,7 +436,7 @@ func (server *Server) MOTD(client *Client, rb *ResponseBuffer) {
 	motdLines := server.Config().Server.motdLines
 
 	if len(motdLines) < 1 {
-		rb.Add(nil, server.name, ERR_NOMOTD, client.nick, client.t("MOTD File is missing"))
+		rb.Add(nil, server.name, ERR_NOMOTD, client.nick, client.t("can't find the motd but we're online af"))
 		return
 	}
 
@@ -481,7 +477,7 @@ func (client *Client) getWhoisOf(target *Client, hasPrivs bool, rb *ResponseBuff
 			rb.Add(nil, client.server.name, RPL_WHOISOPERATOR, cnick, tnick, tOper.WhoisLine)
 		}
 	}
-	if client == target || oper.HasRoleCapab("ban") {
+	if client == target || oper.HasRoleCapab("ban") || !target.HasMode(modes.Cloaked) {
 		rb.Add(nil, client.server.name, RPL_WHOISACTUALLY, cnick, tnick, fmt.Sprintf("%s@%s", targetInfo.username, target.RawHostname()), target.IPString(), client.t("Actual user@host, Actual IP"))
 	}
 	if client == target || oper.HasRoleCapab("samode") {
@@ -1065,21 +1061,14 @@ func (matcher *elistMatcher) Matches(channel *Channel) bool {
 
 var (
 	infoString1 = []string{
-		"   ___ _ __ __ _  ___  ",
-		"  / _ \\ '__/ _` |/ _ \\ ",
-		" |  __/ | | (_| | (_) |",
-		`  \___|_|  \__, |\___/ `,
-		"            __/ |      ",
-		"           |___/       ",
+		"    _/                            _/                _/                    _/",
+		"       _/  _/_/    _/_/_/    _/_/_/        _/_/_/  _/_/_/      _/_/_/  _/_/_/_/",
+		"  _/  _/_/      _/        _/    _/      _/        _/    _/  _/    _/    _/",
+		" _/  _/        _/        _/    _/      _/        _/    _/  _/    _/    _/",
+		"_/  _/          _/_/_/    _/_/_/  _/    _/_/_/  _/    _/    _/_/_/      _/_/",
 		"",
-		"https://ergo.chat/ ",
-		"https://github.com/ergochat/ergo ",
-		"",
+		"                      proudly brought to you by tcp.direct",
+		"                      --> https://twitter.com/tcpdirect",
+		"                      --> https://twitter.com/ircdchat",
 	}
-	infoString2 = strings.Split(`    Daniel Oakley,          DanielOaks,    <daniel@danieloaks.net>
-    Shivaram Lingamneni,    slingamn,      <slingamn@cs.stanford.edu>
-`, "\n")
-	infoString3 = strings.Split(`    Jeremy Latt,            jlatt
-    Edmund Huber,           edmund-huber
-`, "\n")
 )

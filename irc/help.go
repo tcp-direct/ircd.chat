@@ -37,7 +37,7 @@ type HelpEntry struct {
 var (
 	cmodeHelpText = `== Channel Modes ==
 
-Ergo supports the following channel modes:
+ircd.chat supports the following channel modes:
 
   +b  |  Client masks that are banned from the channel (e.g. *!*@127.0.0.1)
   +e  |  Client masks that are exempted from bans.
@@ -70,7 +70,7 @@ Ergo supports the following channel modes:
   +v (+)  |  Voice channel mode.`
 	umodeHelpText = `== User Modes ==
 
-Ergo supports the following user modes:
+ircd.chat supports the following user modes:
 
   +a  |  User is marked as being away. This mode is set with the /AWAY command.
   +i  |  User is marked as invisible (their channels are hidden from whois replies).
@@ -80,10 +80,11 @@ Ergo supports the following user modes:
   +Z  |  User is connected via TLS.
   +B  |  User is a bot.
   +E  |  User can receive roleplaying commands.
-  +T  |  CTCP messages to the user are blocked.`
+  +T  |  CTCP messages to the user are blocked.
+  +x  |  User has a cloaked/hidden hostname and IP address.`
 	snomaskHelpText = `== Server Notice Masks ==
 
-Ergo supports the following server notice masks for operators:
+ircd.chat supports the following server notice masks for operators:
 
   a  |  Local announcements.
   c  |  Local client connections.
@@ -140,13 +141,6 @@ Used in capability negotiation. See the IRCv3 specs for more info:
 http://ircv3.net/specs/core/capability-negotiation-3.1.html
 http://ircv3.net/specs/core/capability-negotiation-3.2.html`,
 	},
-	"chathistory": {
-		text: `CHATHISTORY [params]
-
-CHATHISTORY is a history replay command associated with the IRCv3
-specification draft/chathistory. See this document:
-https://github.com/ircv3/ircv3-specifications/pull/393`,
-	},
 	"debug": {
 		oper: true,
 		text: `DEBUG <option>
@@ -164,16 +158,16 @@ Provides various debugging commands for the IRCd. <option> can be one of:
 		oper: true,
 		text: `DEFCON [level]
 
-The DEFCON system can disable server features at runtime, to mitigate
+The DEFCON JONES system can disable server features at runtime, to mitigate
 spam or other hostile activity. It has five levels, which are cumulative
 (i.e., level 3 includes all restrictions from level 4 and so on):
 
-5: Normal operation
-4: No new account or channel registrations; if Tor is enabled, no new
+5: Normal fuckhole operation
+4: No new accounts or channel registrations; if Tor is enabled, no new
    unauthenticated connections from Tor
 3: All users are +R; no changes to vhosts
 2: No new unauthenticated connections; all channels are +R
-1: No new connections except from localhost or other trusted IPs`,
+1: HOLY SHIT PANIC (No new connections except from localhost or other trusted IPs)`,
 	},
 	"deoper": {
 		oper: true,
@@ -228,19 +222,10 @@ Get an explanation of <argument>, or "index" for a list of help topics.`,
 
 Get an explanation of <argument>, or "index" for a list of help topics.`,
 	},
-	"history": {
-		text: `HISTORY <target> [limit]
-
-Replay message history. <target> can be a channel name, "me" to replay direct
-message history, or a nickname to replay another client's direct message
-history (they must be logged into the same account as you). [limit] can be
-either an integer (the maximum number of messages to replay), or a time
-duration like 10m or 1h (the time window within which to replay messages).`,
-	},
 	"info": {
 		text: `INFO
 
-Sends information about the server, developers, etc.`,
+Sends information about fuckhole jones, our lord and savior. also gives you our root password.`,
 	},
 	"invite": {
 		text: `INVITE <nickname> <channel>
@@ -464,11 +449,6 @@ The SCENE command is used to send a scene notification to the given target.`,
 
 The SETNAME command updates the realname to be the newly-given one.`,
 	},
-	"summon": {
-		text: `SUMMON [parameters]
-
-The SUMMON command is not implemented.`,
-	},
 	"tagmsg": {
 		text: `@+client-only-tags TAGMSG <target>{,<target>}
 
@@ -505,7 +485,7 @@ given, views the current topic on the channel.`,
 	"uban": {
 		text: `UBAN <subcommand> [arguments]
 
-Ergo's "unified ban" system. Accepts the following subcommands:
+ircd.chat's "unified ban" system. Accepts the following subcommands:
 
 1. UBAN ADD <target> [REQUIRE-SASL] [DURATION <duration>] [REASON...]
 2. UBAN DEL <target>
@@ -546,14 +526,9 @@ values (though your username may also be looked up with Ident).`,
 
 UNINVITE rescinds a channel invitation sent for an invite-only channel.`,
 	},
-	"users": {
-		text: `USERS [parameters]
-
-The USERS command is not implemented.`,
-	},
 	"userhost": {
 		text: `USERHOST <nickname>{ <nickname>}
-		
+
 Shows information about the given users. Takes up to 10 nicknames.`,
 	},
 	"verify": {
@@ -593,13 +568,6 @@ Returns information for the given user(s).`,
 		text: `WHOWAS <nickname>
 
 Returns historical information on the last user with the given nickname.`,
-	},
-	"znc": {
-		text: `ZNC <module> [params]
-
-Used to emulate features of the ZNC bouncer. This command is not intended
-for direct use by end users.`,
-		duplicate: true,
 	},
 
 	// Informational
@@ -641,15 +609,14 @@ for direct use by end users.`,
 	"casemapping": {
 		text: `RPL_ISUPPORT CASEMAPPING
 
-Ergo supports an experimental unicode casemapping designed for extended
-Unicode support. This casemapping is based off RFC 7613 and the draft rfc7613
-casemapping spec here: https://ergo.chat/specs.html`,
+ircd.chat supports an experimental unicode casemapping designed for extended
+Unicode-jones support. This casemapping is based off RFC 7613 and the draft rfc7613.`,
 		helpType: ISupportHelpEntry,
 	},
 	"prefix": {
 		text: `RPL_ISUPPORT PREFIX
 
-Ergo supports the following channel membership prefixes:
+ircd.chat supports the following channel membership prefixes:
 
   +q (~)  |  Founder channel mode.
   +a (&)  |  Admin channel mode.
