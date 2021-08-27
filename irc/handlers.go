@@ -109,7 +109,7 @@ func sendSuccessfulAccountAuth(service *ircService, client *Client, rb *Response
 
 	if client.Registered() {
 		// dispatch account-notify
-		for friend := range client.Friends(caps.AccountNotify) {
+		for friend := range client.FriendsMonitors(caps.AccountNotify) {
 			if friend != rb.session {
 				friend.Send(nil, details.nickMask, "ACCOUNT", details.accountName)
 			}
@@ -421,7 +421,7 @@ func dispatchAwayNotify(client *Client, isAway bool, awayMessage string) {
 	// dispatch away-notify
 	details := client.Details()
 	isBot := client.HasMode(modes.Bot)
-	for session := range client.Friends(caps.AwayNotify) {
+	for session := range client.FriendsMonitors(caps.AwayNotify) {
 		if isAway {
 			session.sendFromClientInternal(false, time.Time{}, "", details.nickMask, details.accountName, isBot, nil, "AWAY", awayMessage)
 		} else {
@@ -1315,6 +1315,9 @@ func kickHandler(server *Server, client *Client, msg ircmsg.Message, rb *Respons
 	if len(msg.Params) > 2 {
 		comment = msg.Params[2]
 	}
+	if comment == "" {
+		comment = client.Nick()
+	}
 	for _, kick := range kicks {
 		channel := server.channels.Get(kick.channel)
 		if channel == nil {
@@ -1326,10 +1329,6 @@ func kickHandler(server *Server, client *Client, msg ircmsg.Message, rb *Respons
 		if target == nil {
 			rb.Add(nil, server.name, ERR_NOSUCHNICK, client.nick, utils.SafeErrorParam(kick.nick), client.t("No such nick"))
 			continue
-		}
-
-		if comment == "" {
-			comment = kick.nick
 		}
 		channel.Kick(client, target, comment, rb, hasPrivs)
 	}
@@ -2869,7 +2868,7 @@ func setnameHandler(server *Server, client *Client, msg ircmsg.Message, rb *Resp
 
 	// alert friends
 	now := time.Now().UTC()
-	friends := client.Friends(caps.SetName)
+	friends := client.FriendsMonitors(caps.SetName)
 	delete(friends, rb.session)
 	isBot := client.HasMode(modes.Bot)
 	for session := range friends {
@@ -2974,7 +2973,7 @@ func userHandler(server *Server, client *Client, msg ircmsg.Message, rb *Respons
 
 	username, realname := msg.Params[0], msg.Params[3]
 	if len(realname) == 0 {
-		rb.Add(nil, server.name, ERR_NEEDMOREPARAMS, client.Nick(), client.t("Not enough parameters"))
+		rb.Add(nil, server.name, ERR_NEEDMOREPARAMS, client.Nick(), "USER", client.t("Not enough parameters"))
 		return false
 	}
 
