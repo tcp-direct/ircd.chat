@@ -752,7 +752,7 @@ func init() {
 	for name := range Commands {
 		_, exists := Help[strings.ToLower(name)]
 		if !exists {
-			panic(fmt.Sprintf("Help entry does not exist for command %s", name))
+			fmt.Println(fmt.Sprintf("Help entry does not exist for command %s", name))
 		}
 	}
 }

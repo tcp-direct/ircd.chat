@@ -1099,37 +1099,6 @@ Get an explanation of <argument>, or "index" for a list of help topics.`), rb)
 	return false
 }
 
-// HISTORY <target> [<limit>]
-// e.g., HISTORY #ubuntu 10
-// HISTORY alice 15
-// HISTORY #darwin 1h
-func historyHandler(server *Server, client *Client, msg ircmsg.Message, rb *ResponseBuffer) bool {
-	config := server.Config()
-	if !config.History.Enabled {
-		rb.Notice(client.t("This command has been disabled by the server administrators"))
-		return false
-	}
-
-	items, channel, err := easySelectHistory(server, client, msg.Params)
-
-	if err == errNoSuchChannel {
-		rb.Add(nil, server.name, ERR_NOSUCHCHANNEL, client.Nick(), utils.SafeErrorParam(msg.Params[0]), client.t("No such channel"))
-		return false
-	} else if err != nil {
-		rb.Add(nil, server.name, ERR_UNKNOWNERROR, client.Nick(), msg.Command, client.t("Could not retrieve history"))
-		return false
-	}
-
-	if len(items) != 0 {
-		if channel != nil {
-			channel.replayHistoryItems(rb, items, false)
-		} else {
-			client.replayPrivmsgHistory(rb, items, "")
-		}
-	}
-	return false
-}
-
 // INFO
 func infoHandler(server *Server, client *Client, msg ircmsg.Message, rb *ResponseBuffer) bool {
 	nick := client.Nick()
@@ -2908,12 +2877,6 @@ func setnameHandler(server *Server, client *Client, msg ircmsg.Message, rb *Resp
 	}
 	// respond to the user unconditionally, even if they don't have the cap
 	rb.AddFromClient(now, "", details.nickMask, details.accountName, isBot, nil, "SETNAME", details.realname)
-	return false
-}
-
-// SUMMON [parameters]
-func summonHandler(server *Server, client *Client, msg ircmsg.Message, rb *ResponseBuffer) bool {
-	rb.Add(nil, server.name, ERR_SUMMONDISABLED, client.Nick(), client.t("SUMMON has been disabled"))
 	return false
 }
 
