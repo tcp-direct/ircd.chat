@@ -1,12 +1,11 @@
-      ___ _ __ __ _  ___  
-     / _ \ '__/ _` |/ _ \ 
-    |  __/ | | (_| | (_) |
-     \___|_|  \__, |\___/ 
-               __/ |      
-              |___/     
+         __ __  ______ ___  ______ ___ 
+      __/ // /_/ ____/ __ \/ ____/ __ \
+     /_  // __/ __/ / /_/ / / __/ / / /
+    /_  // __/ /___/ _, _/ /_/ / /_/ / 
+     /_//_/ /_____/_/ |_|\____/\____/  
 
-       Ergo IRCd Manual
-      https://ergo.chat/
+             Ergo IRCd Manual
+            https://ergo.chat/
 
 
 _Copyright © Daniel Oaks <daniel@danieloaks.net>, Shivaram Lingamneni <slingamn@cs.stanford.edu>_
@@ -57,7 +56,7 @@ _Copyright © Daniel Oaks <daniel@danieloaks.net>, Shivaram Lingamneni <slingamn
     - [Channel Prefixes](#channel-prefixes)
 - [Commands](#commands)
 - [Working with other software](#working-with-other-software)
-    - [Kiwi IRC](#kiwi-irc)
+    - [Kiwi IRC and Gamja](#kiwi-irc-and-gamja)
     - [Migrating from Anope or Atheme](#migrating-from-anope-or-atheme)
     - [HOPM](#hopm)
     - [Tor](#tor)
@@ -85,7 +84,7 @@ Ergo's core design goals are:
 * Being simple to set up and use
 * Combining the features of an ircd, a services framework, and a bouncer (integrated account management, history storage, and bouncer functionality)
 * Bleeding-edge [IRCv3 support](http://ircv3.net/software/servers.html), suitable for use as an IRCv3 reference implementation
-* Highly customizable via a rehashable (i.e., reloadable at runtime) YAML config
+* High customizability via a rehashable (i.e., reloadable at runtime) YAML config
 
 In addition to its unique features (integrated services and bouncer, comprehensive internationalization), Ergo also strives for feature parity with other major servers. Ergo is a mature project with multiple communities using it as a day-to-day chat server --- we encourage you to consider it for your organization or community!
 
@@ -183,7 +182,7 @@ The only major distribution that currently packages Ergo is Arch Linux; the afor
 
 1. Create a dedicated, unprivileged role user who will own the ergo process and all its associated files: `adduser --system --group ergo`. This user now has a home directory at `/home/ergo`. To prevent other users from viewing Ergo's configuration file, database, and certificates, restrict the permissions on the home directory: `chmod 0700 /home/ergo`.
 1. Copy the executable binary `ergo`, the config file `ircd.yaml`, the database `ircd.db`, and the self-signed TLS certificate (`fullchain.pem` and `privkey.pem`) to `/home/ergo`. (If you don't have an `ircd.db`, it will be auto-created as `/home/ergo/ircd.db` on first launch.) Ensure that they are all owned by the new ergo role user: `sudo chown ergo:ergo /home/ergo/*`. Ensure that the configuration file logs to stderr.
-1. Install our example [ergo.service](https://github.com/ergochat/ergo/blob/master/distrib/systemd/ergo.service) file to `/etc/systemd/system/ergo.service`.
+1. Install our example [ergo.service](https://github.com/ergochat/ergo/blob/stable/distrib/systemd/ergo.service) file to `/etc/systemd/system/ergo.service`.
 1. Enable and start the new service with the following commands:
     1. `systemctl daemon-reload`
     1. `systemctl enable ergo.service`
@@ -250,6 +249,10 @@ In most IRC servers you can use `NickServ` to register an account. You can do th
 To register an account, use:
 
     /NS REGISTER <password>
+
+or
+
+    /msg nickserv register <password>
 
 This is the way to go if you want to use a regular password. `<password>` is your password, your current nickname will become your username. Your password cannot contain spaces, but make sure to use a strong one anyway.
 
@@ -939,11 +942,11 @@ One exception is services frameworks like [Anope](https://github.com/anope/anope
 
 If you're looking for a bot that supports modern IRCv3 features, check out [bitbot](https://github.com/jesopo/bitbot/)!
 
-## Kiwi IRC
+## Kiwi IRC and Gamja
 
-[Kiwi IRC](https://github.com/kiwiirc/kiwiirc/) is a web-based IRC client with excellent IRCv3 support. In particular, it is the only major client to fully support Ergo's server-side history features. For a demonstration of these features, see the [Ergo testnet](https://testnet.ergo.chat/kiwi).
+We recommend two web-based clients for use with Ergo: [Kiwi IRC](https://github.com/kiwiirc/kiwiirc/) and [Gamja](https://git.sr.ht/~emersion/gamja). Both clients are 100% static files (HTML and Javascript), running entirely in the end user's browser without the need for a separate server-side backend. They can connect directly to Ergo, using Ergo's support for native websockets. Both clients support Ergo's server-side history features; for a demonstration, see the Ergo testnet (click [here for Kiwi](https://testnet.ergo.chat/kiwi/) or [here for Gamja](https://testnet.ergo.chat/gamja)).
 
-Current versions of Kiwi are 100% static files (HTML and Javascript), running entirely in the end user's browser without the need for a separate server-side backend. This frontend can connect directly to Ergo, using Ergo's support for native websockets. For best interoperability with firewalls, you should run an externally facing web server on port 443 that can serve both the static files and the websocket path, then have it reverse-proxy the websocket path to Ergo. For example, configure the following listener in ircd.yaml:
+For best interoperability with firewalls, you should run an externally facing web server on port 443 that can serve both the static files and the websocket path, then have it reverse-proxy the websocket path to Ergo. For example, configure the following listener in ircd.yaml:
 
 ```yaml
         "127.0.0.1:8067":
@@ -972,6 +975,18 @@ then add the following `startupOptions` to Kiwi's `static/config.json` file (see
         "channel": "#chat",
         "nick": "kiwi-n?"
     },
+```
+
+or with Gamja, create a new `config.json` (in the base directory of the Gamja install, alongside Gamja's `index.html`) file along these lines:
+
+```
+{
+        "server": {
+                "url": "wss://domain.example.com/webirc",
+                "autojoin": "#chat",
+                "auth": "optional"
+        }
+}
 ```
 
 ## Migrating from Anope or Atheme

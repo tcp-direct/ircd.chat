@@ -613,11 +613,7 @@ func (client *Client) getIPNoMutex() net.IP {
 
 // IPString returns the IP address of this client as a string.
 func (client *Client) IPString() string {
-	ip := client.IP().String()
-	if 0 < len(ip) && ip[0] == ':' {
-		ip = "0" + ip
-	}
-	return ip
+	return utils.IPStringToHostname(client.IP().String())
 }
 
 // t returns the translated version of the given string, based on the languages configured by the client.
@@ -1029,6 +1025,13 @@ func (client *Client) Friends(capabs ...caps.Capability) (result map[*Session]em
 	return
 }
 
+// Friends refers to clients that share a channel or extended-monitor this client.
+func (client *Client) FriendsMonitors(capabs ...caps.Capability) (result map[*Session]empty) {
+	result = client.Friends(capabs...)
+	client.server.monitorManager.AddMonitors(result, client.nickCasefolded, capabs...)
+	return
+}
+
 // helper for Friends
 func addFriendsToSet(set map[*Session]empty, client *Client, capabs ...caps.Capability) {
 	client.stateMutex.RLock()
@@ -1053,7 +1056,7 @@ func (client *Client) SetOper(oper *Oper) {
 func (client *Client) sendChghost(oldNickMask string, vhost string) {
 	details := client.Details()
 	isBot := client.HasMode(modes.Bot)
-	for fClient := range client.Friends(caps.ChgHost) {
+	for fClient := range client.FriendsMonitors(caps.ChgHost) {
 		fClient.sendFromClientInternal(false, time.Time{}, "", oldNickMask, details.accountName, isBot, nil, "CHGHOST", details.username, vhost)
 	}
 }

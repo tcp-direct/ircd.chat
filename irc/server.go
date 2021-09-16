@@ -51,7 +51,7 @@ var (
 
 	// whitelist of caps to serve on the STS-only listener. In particular,
 	// never advertise SASL, to discourage people from sending their passwords:
-	stsOnlyCaps = caps.NewSet(caps.STS, caps.MessageTags, caps.ServerTime, caps.Batch, caps.LabeledResponse, caps.EchoMessage, caps.Nope)
+	stsOnlyCaps = caps.NewSet(caps.STS, caps.MessageTags, caps.ServerTime, caps.Batch, caps.LabeledResponse, caps.EchoMessage)
 
 	// we only have standard channels for now. TODO: any updates to this
 	// will also need to be reflected in CasefoldChannel

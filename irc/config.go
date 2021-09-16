@@ -303,6 +303,7 @@ func (t *ThrottleConfig) UnmarshalYAML(unmarshal func(interface{}) error) (err e
 type AccountConfig struct {
 	Registration          AccountRegistrationConfig
 	AuthenticationEnabled bool `yaml:"authentication-enabled"`
+	AdvertiseSCRAM        bool `yaml:"advertise-scram"` // undocumented, see #1782
 	RequireSasl           struct {
 		Enabled      bool
 		Exempted     []string
@@ -1379,7 +1380,12 @@ func LoadConfig(filename string) (config *Config, err error) {
 		config.Accounts.VHosts.validRegexp = defaultValidVhostRegex
 	}
 
-	config.Server.capValues[caps.SASL] = "PLAIN,EXTERNAL,SCRAM-SHA-256"
+	saslCapValue := "PLAIN,EXTERNAL,SCRAM-SHA-256"
+	// TODO(#1782) clean this up:
+	if !config.Accounts.AdvertiseSCRAM {
+		saslCapValue = "PLAIN,EXTERNAL"
+	}
+	config.Server.capValues[caps.SASL] = saslCapValue
 	if !config.Accounts.AuthenticationEnabled {
 		config.Server.supportedCaps.Disable(caps.SASL)
 	}
@@ -1588,7 +1594,7 @@ func (config *Config) generateISupport() (err error) {
 		isupport.Add("RPUSER", "E")
 	}
 	isupport.Add("STATUSMSG", "~&@%+")
-	isupport.Add("TARGMAX", fmt.Sprintf("NAMES:1,LIST:1,KICK:1,WHOIS:1,USERHOST:10,PRIVMSG:%s,TAGMSG:%s,NOTICE:%s,MONITOR:%d", maxTargetsString, maxTargetsString, maxTargetsString, config.Limits.MonitorEntries))
+	isupport.Add("TARGMAX", fmt.Sprintf("NAMES:1,LIST:1,KICK:,WHOIS:1,USERHOST:10,PRIVMSG:%s,TAGMSG:%s,NOTICE:%s,MONITOR:%d", maxTargetsString, maxTargetsString, maxTargetsString, config.Limits.MonitorEntries))
 	isupport.Add("TOPICLEN", strconv.Itoa(config.Limits.TopicLen))
 	if config.Server.Casemapping == CasemappingPRECIS {
 		isupport.Add("UTF8MAPPING", precisUTF8MappingToken)

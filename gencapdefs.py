@@ -155,9 +155,9 @@ CAPDEFS = [
     ),
     CapDef(
         identifier="Nope",
-        name="oragono.io/nope",
-        url="https://oragono.io/nope",
-        standard="Oragono vendor",
+        name="ergo.chat/nope",
+        url="https://ergo.chat/nope",
+        standard="Ergo vendor",
     ),
     CapDef(
         identifier="Multiline",
@@ -175,6 +175,12 @@ CAPDEFS = [
         identifier="AccountRegistration",
         name="draft/account-registration",
         url="https://github.com/ircv3/ircv3-specifications/pull/435",
+        standard="draft IRCv3",
+    ),
+    CapDef(
+        identifier="ExtendedMonitor",
+        name="draft/extended-monitor",
+        url="https://github.com/ircv3/ircv3-specifications/pull/466",
         standard="draft IRCv3",
     ),
 ]
