@@ -553,16 +553,9 @@ func capHandler(server *Server, client *Client, msg ircmsg.Message, rb *Response
 			rb.session.capState = caps.NegotiatingState
 		}
 
-		// make sure all capabilities actually exist
-		// #511, #521: oragono.io/nope is a fake cap to trap bad clients who blindly request
-		// every offered capability. during registration, requesting it produces a quit,
-		// otherwise just a CAP NAK
-		if badCaps || (toAdd.Has(caps.Nope) && client.registered) {
+		if badCaps && client.registered {
 			rb.Add(nil, server.name, "CAP", details.nick, "NAK", capString)
 			return false
-		} else if toAdd.Has(caps.Nope) && !client.registered {
-			client.Quit(fmt.Sprintf(client.t("Requesting the %s client capability is forbidden"), caps.Nope.Name()), rb.session)
-			return true
 		}
 
 		rb.session.capabilities.Union(toAdd)

@@ -93,10 +93,6 @@ const (
 	// https://ircv3.net/specs/extensions/multi-prefix-3.1.html
 	MultiPrefix Capability = iota
 
-	// Nope is the Oragono vendor capability named "oragono.io/nope":
-	// https://oragono.io/nope
-	Nope Capability = iota
-
 	// SASL is the IRCv3 capability named "sasl":
 	// https://ircv3.net/specs/extensions/sasl-3.2.html
 	SASL Capability = iota
@@ -149,7 +145,6 @@ var (
 		"labeled-response",
 		"message-tags",
 		"multi-prefix",
-		"oragono.io/nope",
 		"sasl",
 		"server-time",
 		"setname",

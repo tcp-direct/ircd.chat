@@ -56,7 +56,7 @@ const (
 	TorIdleTimeout = time.Second * 30
 	// This is how long a client gets without sending any message, including the PONG to our
 	// PING, before we disconnect them:
-	DefaultTotalTimeout = 2*time.Minute + 30*time.Second
+	DefaultTotalTimeout = 5*time.Minute
 
 	// round off the ping interval by this much, see below:
 	PingCoalesceThreshold = time.Second
@@ -808,7 +808,7 @@ func (client *Client) updateIdleTimer(session *Session, now time.Time) {
 	session.pingSent = false
 
 	if session.idleTimer == nil {
-		pingTimeout := DefaultIdleTimeout
+		pingTimeout := 5 * time.Minute
 		if session.isTor {
 			pingTimeout = TorIdleTimeout
 		}
@@ -818,7 +818,7 @@ func (client *Client) updateIdleTimer(session *Session, now time.Time) {
 
 func (session *Session) handleIdleTimeout() {
 	totalTimeout := DefaultTotalTimeout
-	pingTimeout := DefaultIdleTimeout
+	pingTimeout := 5 * time.Minute
 	if session.isTor {
 		pingTimeout = TorIdleTimeout
 	}
