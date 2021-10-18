@@ -73,6 +73,10 @@ const (
 	// https://ircv3.net/specs/extensions/echo-message-3.2.html
 	EchoMessage Capability = iota
 
+	// Nope is the Ergo vendor capability named "ergo.chat/nope":
+	// https://ergo.chat/nope
+	Nope Capability = iota
+
 	// ExtendedJoin is the IRCv3 capability named "extended-join":
 	// https://ircv3.net/specs/extensions/extended-join-3.1.html
 	ExtendedJoin Capability = iota
@@ -140,6 +144,7 @@ var (
 		"draft/multiline",
 		"draft/relaymsg",
 		"echo-message",
+		"ergo.chat/nope",
 		"extended-join",
 		"invite-notify",
 		"labeled-response",
