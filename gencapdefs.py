@@ -154,12 +154,6 @@ CAPDEFS = [
         standard="ZNC vendor",
     ),
     CapDef(
-        identifier="Nope",
-        name="ergo.chat/nope",
-        url="https://ergo.chat/nope",
-        standard="Ergo vendor",
-    ),
-    CapDef(
         identifier="Multiline",
         name="draft/multiline",
         url="https://github.com/ircv3/ircv3-specifications/pull/398",

@@ -16,7 +16,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	ident "github.com/ergochat/go-ident"
+	"github.com/ergochat/go-ident"
 	"github.com/ergochat/irc-go/ircfmt"
 	"github.com/ergochat/irc-go/ircmsg"
 	"github.com/ergochat/irc-go/ircreader"
@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	// maximum IRC line length, not including tags
+	// DefaultMaxLineLen maximum IRC line length, not including tags
 	DefaultMaxLineLen = 512
 
 	// IdentTimeout is how long before our ident (username) check times out.
@@ -50,15 +50,15 @@ const (
 	RegisterTimeout = time.Minute
 	// DefaultIdleTimeout is how long without traffic before we send the client a PING
 	DefaultIdleTimeout = time.Minute + 30*time.Second
-	// For Tor clients, we send a PING at least every 30 seconds, as a workaround for this bug
+	// TorIdleTimeout For Tor clients, we send a PING at least every 30 seconds, as a workaround for this bug
 	// (single-onion circuits will close unless the client sends data once every 60 seconds):
 	// https://bugs.torproject.org/29665
 	TorIdleTimeout = time.Second * 30
-	// This is how long a client gets without sending any message, including the PONG to our
+	// DefaultTotalTimeout This is how long a client gets without sending any message, including the PONG to our
 	// PING, before we disconnect them:
-	DefaultTotalTimeout = 2*time.Minute + 30*time.Second
+	DefaultTotalTimeout = 5 * time.Minute
 
-	// round off the ping interval by this much, see below:
+	// PingCoalesceThreshold round off the ping interval by this much, see below:
 	PingCoalesceThreshold = time.Second
 )
 
@@ -193,7 +193,7 @@ type MultilineBatch struct {
 	tags          map[string]string
 }
 
-// Starts a multiline batch, failing if there's one already open
+// StartMultilineBatch Starts a multiline batch, failing if there's one already open
 func (s *Session) StartMultilineBatch(label, target, responseLabel string, tags map[string]string) (err error) {
 	if s.batch.label != "" {
 		return errInvalidMultilineBatch
@@ -204,7 +204,7 @@ func (s *Session) StartMultilineBatch(label, target, responseLabel string, tags 
 	return
 }
 
-// Closes a multiline batch unconditionally; returns the batch and whether
+// EndMultilineBatch Closes a multiline batch unconditionally; returns the batch and whether
 // it was validly terminated (pass "" as the label if you don't care about the batch)
 func (s *Session) EndMultilineBatch(label string) (batch MultilineBatch, err error) {
 	batch = s.batch
@@ -249,7 +249,7 @@ func (s *Session) IP() net.IP {
 	return s.realIP
 }
 
-// returns whether the client supports a smart history replay cap,
+// HasHistoryCaps returns whether the client supports a smart history replay cap,
 // and therefore autoreplay-on-join and similar should be suppressed
 func (session *Session) HasHistoryCaps() bool {
 	return session.capabilities.Has(caps.Chathistory) || session.capabilities.Has(caps.ZNCPlayback)
@@ -488,40 +488,19 @@ func (client *Client) lookupHostname(session *Session, overwrite bool) {
 	if session.proxiedIP != nil {
 		ip = session.proxiedIP
 	}
-	ipString := ip.String()
 
-	var hostname, candidate string
+	var hostname string
+	lookupSuccessful := false
 	if config.Server.lookupHostnames {
 		session.Notice("*** Looking up your hostname...")
-
-		names, err := net.LookupAddr(ipString)
-		if err == nil && 0 < len(names) {
-			candidate = strings.TrimSuffix(names[0], ".")
-		}
-		if utils.IsHostname(candidate) {
-			if config.Server.ForwardConfirmHostnames {
-				addrs, err := net.LookupHost(candidate)
-				if err == nil {
-					for _, addr := range addrs {
-						if addr == ipString {
-							hostname = candidate // successful forward confirmation
-							break
-						}
-					}
-				}
-			} else {
-				hostname = candidate
-			}
-		}
-	}
-
-	if hostname != "" {
-		session.Notice("*** Found your hostname")
-	} else {
-		if config.Server.lookupHostnames {
+		hostname, lookupSuccessful = utils.LookupHostname(ip, config.Server.ForwardConfirmHostnames)
+		if lookupSuccessful {
+			session.Notice("*** Found your hostname")
+		} else {
 			session.Notice("*** Couldn't look up your hostname")
 		}
-		hostname = utils.IPStringToHostname(ipString)
+	} else {
+		hostname = utils.IPStringToHostname(ip.String())
 	}
 
 	session.rawHostname = hostname
@@ -808,7 +787,7 @@ func (client *Client) updateIdleTimer(session *Session, now time.Time) {
 	session.pingSent = false
 
 	if session.idleTimer == nil {
-		pingTimeout := DefaultIdleTimeout
+		pingTimeout := 5 * time.Minute
 		if session.isTor {
 			pingTimeout = TorIdleTimeout
 		}
@@ -818,7 +797,7 @@ func (client *Client) updateIdleTimer(session *Session, now time.Time) {
 
 func (session *Session) handleIdleTimeout() {
 	totalTimeout := DefaultTotalTimeout
-	pingTimeout := DefaultIdleTimeout
+	pingTimeout := 5 * time.Minute
 	if session.isTor {
 		pingTimeout = TorIdleTimeout
 	}
@@ -1025,7 +1004,7 @@ func (client *Client) Friends(capabs ...caps.Capability) (result map[*Session]em
 	return
 }
 
-// Friends refers to clients that share a channel or extended-monitor this client.
+// FriendsMonitors Friends refers to clients that share a channel or extended-monitor this client.
 func (client *Client) FriendsMonitors(capabs ...caps.Capability) (result map[*Session]empty) {
 	result = client.Friends(capabs...)
 	client.server.monitorManager.AddMonitors(result, client.nickCasefolded, capabs...)
@@ -1617,7 +1596,7 @@ type channelInvite struct {
 	invitedAt        time.Time
 }
 
-// Records that the client has been invited to join an invite-only channel
+// Invite Records that the client has been invited to join an invite-only channel
 func (client *Client) Invite(casefoldedChannel string, channelCreatedAt time.Time) {
 	now := time.Now().UTC()
 	client.stateMutex.Lock()
@@ -1641,7 +1620,7 @@ func (client *Client) Uninvite(casefoldedChannel string) {
 	delete(client.invitedTo, casefoldedChannel)
 }
 
-// Checks that the client was invited to join a given channel
+// CheckInvited Checks that the client was invited to join a given channel
 func (client *Client) CheckInvited(casefoldedChannel string, createdTime time.Time) (invited bool) {
 	config := client.server.Config()
 	expTime := time.Duration(config.Channels.InviteExpiration)
@@ -1723,10 +1702,7 @@ func (client *Client) addHistoryItem(target *Client, item history.Item, details,
 		item.CfCorrespondent = details.nickCasefolded
 		target.history.Add(item)
 	}
-	if cStatus == HistoryPersistent || tStatus == HistoryPersistent {
-		targetedItem.CfCorrespondent = ""
-		client.server.historyDB.AddDirectMessage(details.nickCasefolded, details.account, tDetails.nickCasefolded, tDetails.account, targetedItem)
-	}
+
 	return nil
 }
 
@@ -1749,10 +1725,6 @@ func (client *Client) listTargets(start, end history.Selector, limit int) (resul
 		} else {
 			chcfnames = append(chcfnames, channel.NameCasefolded())
 		}
-	}
-	persistentExtras, err := client.server.historyDB.ListChannels(chcfnames)
-	if err == nil && len(persistentExtras) != 0 {
-		extras = append(extras, persistentExtras...)
 	}
 
 	_, cSeq, err := client.server.GetHistorySequence(nil, client, "")
@@ -1891,7 +1863,7 @@ func (client *Client) performWrite(additionalDirtyBits uint) {
 	}
 }
 
-// Blocking store; see Channel.Store and Socket.BlockingWrite
+// Store Blocking store; see Channel.Store and Socket.BlockingWrite
 func (client *Client) Store(dirtyBits uint) (err error) {
 	defer func() {
 		client.stateMutex.Lock()

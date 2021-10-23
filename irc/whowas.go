@@ -22,7 +22,7 @@ type WhoWasList struct {
 	accessMutex sync.RWMutex // tier 1
 }
 
-// NewWhoWasList returns a new WhoWasList
+// Initialize NewWhoWasList returns a new WhoWasList
 func (list *WhoWasList) Initialize(size int) {
 	list.buffer = make([]WhoWas, size)
 	list.start = -1

@@ -84,11 +84,12 @@ var (
 )
 
 type CertKeyError struct {
-	Err error
+	Err     error
+	Details string
 }
 
 func (ck *CertKeyError) Error() string {
-	return fmt.Sprintf("Invalid TLS cert/key pair: %v", ck.Err)
+	return fmt.Sprintf("Invalid TLS cert/key pair for %s: %v", ck.Details, ck.Err)
 }
 
 type ThrottleError struct {

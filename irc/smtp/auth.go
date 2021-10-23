@@ -11,8 +11,8 @@ import (
 	"fmt"
 )
 
-// Auth is implemented by an SMTP authentication mechanism.
-type Auth interface {
+// AuthMethod is implemented by an SMTP authentication mechanism.
+type AuthMethod interface {
 	// Start begins an authentication with a server.
 	// It returns the name of the authentication protocol
 	// and optionally data to include in the initial AUTH message
@@ -43,15 +43,15 @@ type plainAuth struct {
 	host                         string
 }
 
-// PlainAuth returns an Auth that implements the PLAIN authentication
-// mechanism as defined in RFC 4616. The returned Auth uses the given
+// PlainAuth returns an AuthMethod that implements the PLAIN authentication
+// mechanism as defined in RFC 4616. The returned AuthMethod uses the given
 // username and password to authenticate to host and act as identity.
 // Usually identity should be the empty string, to act as username.
 //
 // PlainAuth will only send the credentials if the connection is using TLS
 // or is connected to localhost. Otherwise authentication will fail with an
 // error, without sending the credentials.
-func PlainAuth(identity, username, password, host string) Auth {
+func PlainAuth(identity, username, password, host string) AuthMethod {
 	return &plainAuth{identity, username, password, host}
 }
 
@@ -87,11 +87,11 @@ type cramMD5Auth struct {
 	username, secret string
 }
 
-// CRAMMD5Auth returns an Auth that implements the CRAM-MD5 authentication
+// CRAMMD5Auth returns an AuthMethod that implements the CRAM-MD5 authentication
 // mechanism as defined in RFC 2195.
-// The returned Auth uses the given username and secret to authenticate
+// The returned AuthMethod uses the given username and secret to authenticate
 // to the server using the challenge-response mechanism.
-func CRAMMD5Auth(username, secret string) Auth {
+func CRAMMD5Auth(username, secret string) AuthMethod {
 	return &cramMD5Auth{username, secret}
 }
 

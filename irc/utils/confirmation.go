@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// Deterministically generates a confirmation code for some destructive activity;
+// ConfirmationCode Deterministically generates a confirmation code for some destructive activity;
 // `name` is typically the name of the identity being destroyed (a channel being
 // unregistered, or the server being crashed) and `createdAt` means a different
 // value is required each time.

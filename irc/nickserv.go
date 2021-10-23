@@ -1500,7 +1500,7 @@ func nsSuspendRemoveHandler(service *ircService, server *Server, client *Client,
 	}
 }
 
-// sort in reverse order of creation time
+// ByCreationTime sort in reverse order of creation time
 type ByCreationTime []AccountSuspension
 
 func (a ByCreationTime) Len() int           { return len(a) }

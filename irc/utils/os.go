@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-// implementation of `cp` (go should really provide this...)
+// CopyFile implementation of `cp` (go should really provide this...)
 func CopyFile(src string, dst string) (err error) {
 	in, err := os.Open(src)
 	if err != nil {

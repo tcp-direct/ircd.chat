@@ -155,7 +155,7 @@ func (cidr IPNet) Contains(ip IP) bool {
 	return cidr.IP == maskedIP
 }
 
-// FromNetIPnet converts a net.IPNet into an IPNet.
+// FromNetIPNet FromNetIPnet converts a net.IPNet into an IPNet.
 func FromNetIPNet(network net.IPNet) (result IPNet) {
 	ones, _ := network.Mask.Size()
 	if len(network.IP) == 16 {

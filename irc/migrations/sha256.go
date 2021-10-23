@@ -38,7 +38,7 @@ import (
 	"encoding/binary"
 )
 
-// The size of a SHA256 checksum in bytes.
+// Size The size of a SHA256 checksum in bytes.
 const Size = 32
 
 const (

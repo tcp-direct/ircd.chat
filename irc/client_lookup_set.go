@@ -289,7 +289,7 @@ func (clients *ClientManager) FindAll(userhost string) (set ClientSet) {
 	return set
 }
 
-// Determine the canonical / unfolded form of a nick, if a client matching it
+// UnfoldNick Determine the canonical / unfolded form of a nick, if a client matching it
 // is present (or always-on).
 func (clients *ClientManager) UnfoldNick(cfnick string) (nick string) {
 	clients.RLock()

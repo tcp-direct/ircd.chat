@@ -111,3 +111,4 @@ ergo.mprof
 /dist
 *.pem
 .dccache
+.idea

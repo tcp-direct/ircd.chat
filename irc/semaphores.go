@@ -14,7 +14,7 @@ import (
 // (regrettably, unary-encoded) counting semaphore to enforce these restrictions.
 
 const (
-	// this is a tradeoff between exploiting CPU-level parallelism (higher values better)
+	// MaxServerSemaphoreCapacity this is a tradeoff between exploiting CPU-level parallelism (higher values better)
 	// and not thrashing the allocator (lower values better). really this is all just
 	// guesswork. oragono *can* make use of cores beyond this limit --- just not for
 	// the protected operations.

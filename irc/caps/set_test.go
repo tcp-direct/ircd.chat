@@ -3,8 +3,10 @@
 
 package caps
 
-import "testing"
-import "reflect"
+import (
+	"reflect"
+	"testing"
+)
 
 func TestSets(t *testing.T) {
 	s1 := NewSet()
@@ -78,14 +80,12 @@ func BenchmarkSetReads(b *testing.B) {
 		set.Has(UserhostInNames)
 		set.Has(LabeledResponse)
 		set.Has(EchoMessage)
-		set.Has(Nope)
 	}
 }
 
 func BenchmarkSetWrites(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		set := NewSet(UserhostInNames, EchoMessage)
-		set.Add(Nope)
 		set.Add(ExtendedJoin)
 		set.Remove(UserhostInNames)
 		set.Remove(LabeledResponse)

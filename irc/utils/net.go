@@ -64,7 +64,7 @@ func IsServerName(name string) bool {
 	return IsHostname(name) && strings.IndexByte(name, '.') != -1
 }
 
-// Convenience to test whether `ip` is contained in any of `nets`.
+// IPInNets Convenience to test whether `ip` is contained in any of `nets`.
 func IPInNets(ip net.IP, nets []net.IPNet) bool {
 	for _, network := range nets {
 		if network.Contains(ip) {
@@ -101,7 +101,7 @@ func NormalizeNet(network net.IPNet) (result net.IPNet) {
 	}
 }
 
-// Given a network, produce a human-readable string
+// NetToNormalizedString Given a network, produce a human-readable string
 // (i.e., CIDR if it's actually a network, IPv6 address if it's a v6 /128,
 // dotted quad if it's a v4 /32).
 func NetToNormalizedString(network net.IPNet) string {
@@ -192,4 +192,38 @@ func HandleXForwardedFor(remoteAddr string, xForwardedFor string, whitelist []ne
 	// return either the last valid and trusted IP (which must be the origin),
 	// or nil:
 	return
+}
+
+// LookupHostname does an (optionally reverse-confirmed) hostname lookup
+// suitable for use as an IRC hostname. It falls back to a string
+// representation of the IP address (again suitable for use as an IRC
+// hostname).
+func LookupHostname(ip net.IP, forwardConfirm bool) (hostname string, lookupSuccessful bool) {
+	ipString := ip.String()
+	var candidate string
+	names, err := net.LookupAddr(ipString)
+	if err == nil && 0 < len(names) {
+		candidate = strings.TrimSuffix(names[0], ".")
+	}
+	if IsHostname(candidate) {
+		if forwardConfirm {
+			addrs, err := net.LookupHost(candidate)
+			if err == nil {
+				for _, addr := range addrs {
+					if forwardIP := net.ParseIP(addr); ip.Equal(forwardIP) {
+						hostname = candidate // successful forward confirmation
+						break
+					}
+				}
+			}
+		} else {
+			hostname = candidate
+		}
+	}
+
+	if hostname != "" {
+		return hostname, true
+	} else {
+		return IPStringToHostname(ipString), false
+	}
 }

@@ -297,7 +297,7 @@ Sets your preferred languages to the given ones.`,
 
 Shows information on the given channels (or if none are given, then on all
 channels). <elistcond>s modify how the channels are selected.`,
-		//TODO(dan): Explain <elistcond>s in more specific detail
+		// TODO(dan): Explain <elistcond>s in more specific detail
 	},
 	"lusers": {
 		text: `LUSERS [<mask> [<server>]]
@@ -728,7 +728,7 @@ func (client *Client) sendHelp(helpEntry string, text string, rb *ResponseBuffer
 	rb.Add(nil, client.server.name, RPL_ENDOFHELP, nick, helpEntry, client.t("End of /HELPOP"))
 }
 
-// GetHelpIndex returns the help index for the given language.
+// GetIndex GetHelpIndex returns the help index for the given language.
 func (hm *HelpIndexManager) GetIndex(languages []string, oper bool) string {
 	hm.RLock()
 	langToIndex := hm.langToIndex
@@ -752,7 +752,7 @@ func init() {
 	for name := range Commands {
 		_, exists := Help[strings.ToLower(name)]
 		if !exists {
-			panic(fmt.Sprintf("Help entry does not exist for command %s", name))
+			fmt.Println(fmt.Sprintf("Help entry does not exist for command %s", name))
 		}
 	}
 }

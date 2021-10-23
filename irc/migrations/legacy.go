@@ -4,7 +4,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// See the v12-to-v13 schema change. The format of this hash is:
+// CheckOragonoPassphraseV0 See the v12-to-v13 schema change. The format of this hash is:
 // 30 bytes of global salt, 30 bytes of per-passphrase salt, then the bcrypt hash
 func CheckOragonoPassphraseV0(hash, passphrase []byte) error {
 	globalSalt := hash[:30]

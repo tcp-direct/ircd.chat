@@ -12,7 +12,6 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
-	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -23,16 +22,16 @@ import (
 	"github.com/ergochat/irc-go/ircfmt"
 	"github.com/okzk/sdnotify"
 
+	"github.com/tidwall/buntdb"
+
 	"github.com/ergochat/ergo/irc/caps"
 	"github.com/ergochat/ergo/irc/connection_limits"
 	"github.com/ergochat/ergo/irc/flatip"
 	"github.com/ergochat/ergo/irc/history"
 	"github.com/ergochat/ergo/irc/logger"
 	"github.com/ergochat/ergo/irc/modes"
-	"github.com/ergochat/ergo/irc/mysql"
 	"github.com/ergochat/ergo/irc/sno"
 	"github.com/ergochat/ergo/irc/utils"
-	"github.com/tidwall/buntdb"
 )
 
 const (
@@ -84,7 +83,6 @@ type Server struct {
 	exitSignals       chan os.Signal
 	snomasks          SnoManager
 	store             *buntdb.DB
-	historyDB         mysql.MySQL
 	torLimiter        connection_limits.TorLimiter
 	whoWas            WhoWasList
 	stats             Stats
@@ -100,7 +98,7 @@ func NewServer(config *Config, logger *logger.Manager) (*Server, error) {
 		listeners:    make(map[string]IRCListener),
 		logger:       logger,
 		rehashSignal: make(chan os.Signal, 1),
-		exitSignals:  make(chan os.Signal, len(ServerExitSignals)),
+		exitSignals:  make(chan os.Signal, len(utils.ServerExitSignals)),
 		defcon:       5,
 	}
 
@@ -115,7 +113,7 @@ func NewServer(config *Config, logger *logger.Manager) (*Server, error) {
 	}
 
 	// Attempt to clean up when receiving these signals.
-	signal.Notify(server.exitSignals, ServerExitSignals...)
+	signal.Notify(server.exitSignals, utils.ServerExitSignals...)
 	signal.Notify(server.rehashSignal, syscall.SIGHUP)
 
 	time.AfterFunc(alwaysOnExpirationPollPeriod, server.handleAlwaysOnExpirations)
@@ -128,7 +126,7 @@ func (server *Server) Shutdown() {
 	sdnotify.Stopping()
 	server.logger.Info("server", "Stopping server")
 
-	//TODO(dan): Make sure we disallow new nicks
+	// TODO(dan): Make sure we disallow new nicks
 	for _, client := range server.clients.AllClients() {
 		client.Notice("Server is shutting down")
 		if client.AlwaysOn() {
@@ -140,7 +138,6 @@ func (server *Server) Shutdown() {
 		server.logger.Error("shutdown", fmt.Sprintln("Could not close datastore:", err))
 	}
 
-	server.historyDB.Close()
 	server.logger.Info("server", fmt.Sprintf("%s exiting", Ver))
 }
 
@@ -245,13 +242,11 @@ func (server *Server) checkTorLimits() (banned bool, message string) {
 
 func (server *Server) handleAlwaysOnExpirations() {
 	defer func() {
-		if r := recover(); r != nil {
-			server.logger.Error("internal",
-				fmt.Sprintf("Panic in always-on cleanup: %v\n%s", r, debug.Stack()))
-		}
-		// either way, reschedule
+		// reschedule whether or not there was a panic
 		time.AfterFunc(alwaysOnExpirationPollPeriod, server.handleAlwaysOnExpirations)
 	}()
+
+	defer server.HandlePanic()
 
 	config := server.Config()
 	deadline := time.Duration(config.Accounts.Multiclient.AlwaysOnExpiration)
@@ -379,7 +374,7 @@ func (server *Server) playRegistrationBurst(session *Session) {
 	}
 
 	// send welcome text
-	//NOTE(dan): we specifically use the NICK here instead of the nickmask
+	// NOTE(dan): we specifically use the NICK here instead of the nickmask
 	// see http://modern.ircdocs.horse/#rplwelcome-001 for details on why we avoid using the nickmask
 	config := server.Config()
 	session.Send(nil, server.name, RPL_WELCOME, d.nick, fmt.Sprintf(c.t("Welcome to the %s Network %s"), config.Network.Name, d.nick))
@@ -478,7 +473,8 @@ func (client *Client) getWhoisOf(target *Client, hasPrivs bool, rb *ResponseBuff
 		}
 	}
 	if client == target || oper.HasRoleCapab("ban") || !target.HasMode(modes.Cloaked) {
-		rb.Add(nil, client.server.name, RPL_WHOISACTUALLY, cnick, tnick, fmt.Sprintf("%s@%s", targetInfo.username, target.RawHostname()), target.IPString(), client.t("Actual user@host, Actual IP"))
+		ip, hostname := target.getWhoisActually()
+		rb.Add(nil, client.server.name, RPL_WHOISACTUALLY, cnick, tnick, fmt.Sprintf("%s@%s", targetInfo.username, hostname), utils.IPStringToHostname(ip.String()), client.t("Actual user@host, Actual IP"))
 	}
 	if client == target || oper.HasRoleCapab("samode") {
 		rb.Add(nil, client.server.name, RPL_WHOISMODES, cnick, tnick, fmt.Sprintf(client.t("is using modes +%s"), target.modes.String()))
@@ -509,16 +505,7 @@ func (client *Client) getWhoisOf(target *Client, hasPrivs bool, rb *ResponseBuff
 // rehash reloads the config and applies the changes from the config file.
 func (server *Server) rehash() error {
 	// #1570; this needs its own panic handling because it can be invoked via SIGHUP
-	defer func() {
-		if r := recover(); r != nil {
-			if server.Config().Debug.recoverFromErrors {
-				server.logger.Error("internal",
-					fmt.Sprintf("Panic during rehash: %v\n%s", r, debug.Stack()))
-			} else {
-				panic(r)
-			}
-		}
-	}()
+	defer server.HandlePanic()
 
 	server.logger.Info("server", "Attempting rehash")
 
@@ -577,8 +564,6 @@ func (server *Server) applyConfig(config *Config) (err error) {
 			return fmt.Errorf("Cannot change max-concurrency for scripts after launching the server, rehash aborted")
 		} else if oldConfig.Server.OverrideServicesHostname != config.Server.OverrideServicesHostname {
 			return fmt.Errorf("Cannot change override-services-hostname after launching the server, rehash aborted")
-		} else if !oldConfig.Datastore.MySQL.Enabled && config.Datastore.MySQL.Enabled {
-			return fmt.Errorf("Cannot enable MySQL after launching the server, rehash aborted")
 		} else if oldConfig.Server.MaxLineLen != config.Server.MaxLineLen {
 			return fmt.Errorf("Cannot change max-line-len after launching the server, rehash aborted")
 		}
@@ -647,10 +632,6 @@ func (server *Server) applyConfig(config *Config) (err error) {
 	if initial {
 		if err := server.loadDatastore(config); err != nil {
 			return err
-		}
-	} else {
-		if config.Datastore.MySQL.Enabled && config.Datastore.MySQL != oldConfig.Datastore.MySQL {
-			server.historyDB.SetConfig(config.Datastore.MySQL)
 		}
 	}
 
@@ -740,10 +721,7 @@ func (server *Server) applyConfig(config *Config) (err error) {
 }
 
 func (server *Server) setupPprofListener(config *Config) {
-	pprofListener := ""
-	if config.Debug.PprofListener != nil {
-		pprofListener = *config.Debug.PprofListener
-	}
+	pprofListener := config.Debug.PprofListener
 	if server.pprofServer != nil {
 		if pprofListener == "" || (pprofListener != server.pprofServer.Addr) {
 			server.logger.Info("server", "Stopping pprof listener", server.pprofServer.Addr)
@@ -796,15 +774,6 @@ func (server *Server) loadFromDatastore(config *Config) (err error) {
 	server.channelRegistry.Initialize(server)
 	server.channels.Initialize(server)
 	server.accounts.Initialize(server)
-
-	if config.Datastore.MySQL.Enabled {
-		server.historyDB.Initialize(server.logger, config.Datastore.MySQL)
-		err = server.historyDB.Open()
-		if err != nil {
-			server.logger.Error("internal", "could not connect to mysql", err.Error())
-			return err
-		}
-	}
 
 	return nil
 }
@@ -864,7 +833,7 @@ func (server *Server) setupListeners(config *Config) (err error) {
 	return
 }
 
-// Gets the abstract sequence from which we're going to query history;
+// GetHistorySequence Gets the abstract sequence from which we're going to query history;
 // we may already know the channel we're querying, or we may have
 // to look it up via a string query. This function is responsible for
 // privilege checking.
@@ -880,7 +849,7 @@ func (server *Server) GetHistorySequence(providedChannel *Channel, client *Clien
 	// if we're retrieving a DM conversation ("query buffer"). with persistent history,
 	// target is always nonempty, and correspondent is either empty or nonempty as before.
 	var status HistoryStatus
-	var target, correspondent string
+	var correspondent string
 	var hist *history.Buffer
 	restriction := HistoryCutoffNone
 	channel = providedChannel
@@ -900,7 +869,7 @@ func (server *Server) GetHistorySequence(providedChannel *Channel, client *Clien
 			err = errInsufficientPrivs
 			return
 		}
-		status, target, restriction = channel.historyStatus(config)
+		status, _, restriction = channel.historyStatus(config)
 		switch status {
 		case HistoryEphemeral:
 			hist = &channel.history
@@ -910,7 +879,7 @@ func (server *Server) GetHistorySequence(providedChannel *Channel, client *Clien
 			return
 		}
 	} else {
-		status, target = client.historyStatus(config)
+		status, _ = client.historyStatus(config)
 		if query != "" {
 			correspondent, err = CasefoldName(query)
 			if err != nil {
@@ -951,9 +920,8 @@ func (server *Server) GetHistorySequence(providedChannel *Channel, client *Clien
 
 	if hist != nil {
 		sequence = hist.MakeSequence(correspondent, cutoff)
-	} else if target != "" {
-		sequence = server.historyDB.MakeSequence(target, correspondent, cutoff)
 	}
+
 	return
 }
 
@@ -966,10 +934,6 @@ func (server *Server) ForgetHistory(accountName string) {
 	config := server.Config()
 	if !config.History.Enabled {
 		return
-	}
-
-	if cfAccount, err := CasefoldName(accountName); err == nil {
-		server.historyDB.Forget(cfAccount)
 	}
 
 	persistent := config.History.Persistent
@@ -1013,9 +977,7 @@ func (server *Server) DeleteMessage(target, msgid, accountName string) (err erro
 		}
 	}
 
-	if hist == nil {
-		err = server.historyDB.DeleteMsgid(msgid, accountName)
-	} else {
+	if hist != nil {
 		count := hist.Delete(func(item *history.Item) bool {
 			return item.Message.Msgid == msgid && (accountName == "*" || item.AccountName == accountName)
 		})

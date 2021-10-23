@@ -19,14 +19,14 @@ type Stats struct {
 	mutex sync.Mutex
 }
 
-// Adds an unregistered client
+// Add Adds an unregistered client
 func (s *Stats) Add() {
 	s.mutex.Lock()
 	s.Unknown += 1
 	s.mutex.Unlock()
 }
 
-// Activates a registered client, e.g., for the initial attach to a persistent client
+// AddRegistered Activates a registered client, e.g., for the initial attach to a persistent client
 func (s *Stats) AddRegistered(invisible, operator bool) {
 	s.mutex.Lock()
 	if invisible {
@@ -40,7 +40,7 @@ func (s *Stats) AddRegistered(invisible, operator bool) {
 	s.mutex.Unlock()
 }
 
-// Transition a client from unregistered to registered
+// Register Transition a client from unregistered to registered
 func (s *Stats) Register(invisible bool) {
 	s.mutex.Lock()
 	s.Unknown -= 1
@@ -58,14 +58,14 @@ func (s *Stats) setMax() {
 	}
 }
 
-// Modify the Invisible count
+// ChangeInvisible Modify the Invisible count
 func (s *Stats) ChangeInvisible(increment int) {
 	s.mutex.Lock()
 	s.Invisible += increment
 	s.mutex.Unlock()
 }
 
-// Modify the Operator count
+// ChangeOperators Modify the Operator count
 func (s *Stats) ChangeOperators(increment int) {
 	s.mutex.Lock()
 	s.Operators += increment
@@ -89,7 +89,7 @@ func (s *Stats) Remove(registered, invisible, operator bool) {
 	s.mutex.Unlock()
 }
 
-// GetStats retrives total, invisible and oper count
+// GetValues GetStats retrives total, invisible and oper count
 func (s *Stats) GetValues() (result StatsValues) {
 	s.mutex.Lock()
 	result = s.StatsValues

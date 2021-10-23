@@ -13,15 +13,15 @@ import (
 type FakelagState uint
 
 const (
-	// initially, the client is "bursting" and can send n commands without
+	// FakelagBursting FakelagBursting initially, the client is "bursting" and can send n commands without
 	// encountering fakelag
 	FakelagBursting FakelagState = iota
-	// after that, they're "throttled" and we sleep in between commands until
+	// FakelagThrottled FakelagThrottled after that, they're "throttled" and we sleep in between commands until
 	// they're spaced sufficiently far apart
 	FakelagThrottled
 )
 
-// this is intentionally not threadsafe, because it should only be touched
+// Fakelag Fakelag this is intentionally not threadsafe, because it should only be touched
 // from the loop that accepts the client's input and runs commands
 type Fakelag struct {
 	config    FakelagConfig
@@ -41,7 +41,7 @@ func (fl *Fakelag) Initialize(config FakelagConfig) {
 	fl.state = FakelagBursting
 }
 
-// Idempotently turn off fakelag if it's enabled
+// Suspend Idempotently turn off fakelag if it's enabled
 func (fl *Fakelag) Suspend() {
 	if fl.config.Enabled {
 		fl.suspended = true
@@ -49,7 +49,7 @@ func (fl *Fakelag) Suspend() {
 	}
 }
 
-// Idempotently turn fakelag back on if it was previously Suspend'ed
+// Unsuspend Idempotently turn fakelag back on if it was previously Suspend'ed
 func (fl *Fakelag) Unsuspend() {
 	if fl.suspended {
 		fl.config.Enabled = true
@@ -57,7 +57,7 @@ func (fl *Fakelag) Unsuspend() {
 	}
 }
 
-// register a new command, sleep if necessary to delay it
+// Touch register a new command, sleep if necessary to delay it
 func (fl *Fakelag) Touch() {
 	if !fl.config.Enabled {
 		return

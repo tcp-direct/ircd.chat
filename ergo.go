@@ -17,6 +17,7 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/docopt/docopt-go"
+
 	"github.com/ergochat/ergo/irc"
 	"github.com/ergochat/ergo/irc/logger"
 	"github.com/ergochat/ergo/irc/mkcerts"

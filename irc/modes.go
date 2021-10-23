@@ -49,6 +49,13 @@ func ApplyUserModeChanges(client *Client, changes modes.ModeChanges, force bool,
 						client.server.stats.ChangeInvisible(1)
 					} else if change.Mode == modes.Operator && present {
 						client.server.stats.ChangeOperators(1)
+					} else if change.Mode == modes.Cloaked {
+						config := client.server.Config()
+						if client.proxiedIP != nil {
+							client.setCloakedHostname(config.Server.Cloaks.ComputeCloak(client.proxiedIP))
+						} else {
+							client.setCloakedHostname(config.Server.Cloaks.ComputeCloak(client.realIP))
+						}
 					}
 					applied = append(applied, change)
 				}
@@ -67,6 +74,8 @@ func ApplyUserModeChanges(client *Client, changes modes.ModeChanges, force bool,
 						if removedSnomasks != "" {
 							client.server.snomasks.RemoveClient(client)
 						}
+					} else if change.Mode == modes.Cloaked {
+						client.setCloakedHostname(client.rawHostname)
 					}
 					applied = append(applied, change)
 					if removedSnomasks != "" {

@@ -7,9 +7,10 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/ergochat/irc-go/ircmsg"
+
 	"github.com/ergochat/ergo/irc/caps"
 	"github.com/ergochat/ergo/irc/utils"
-	"github.com/ergochat/irc-go/ircmsg"
 )
 
 const (
@@ -190,7 +191,7 @@ func (rb *ResponseBuffer) sendBatchEnd(blocking bool) {
 	rb.session.SendRawMessage(message, blocking)
 }
 
-// Starts a nested batch (see the ResponseBuffer struct definition for a description of
+// StartNestedBatch Starts a nested batch (see the ResponseBuffer struct definition for a description of
 // how this works)
 func (rb *ResponseBuffer) StartNestedBatch(batchType string, params ...string) (batchID string) {
 	batchID = rb.session.generateBatchID()

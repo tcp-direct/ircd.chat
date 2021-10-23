@@ -5,8 +5,9 @@ package email
 
 import (
 	"errors"
-	dkim "github.com/toorop/go-dkim"
 	"os"
+
+	"github.com/toorop/go-dkim"
 )
 
 var (

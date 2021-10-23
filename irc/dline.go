@@ -10,8 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ergochat/ergo/irc/flatip"
 	"github.com/tidwall/buntdb"
+
+	"github.com/ergochat/ergo/irc/flatip"
 )
 
 const (

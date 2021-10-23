@@ -39,7 +39,7 @@ func (masks Masks) Sort() {
 	sort.Slice(masks, func(i, j int) bool { return masks[i] < masks[j] })
 }
 
-// Evaluate changes to snomasks made with MODE. There are several cases:
+// EvaluateSnomaskChanges Evaluate changes to snomasks made with MODE. There are several cases:
 // adding snomasks with `/mode +s a` or `/mode +s +a`, removing them with `/mode +s -a`,
 // adding all with `/mode +s *` or `/mode +s +*`, removing all with `/mode +s -*` or `/mode -s`
 func EvaluateSnomaskChanges(add bool, arg string, currentMasks Masks) (addMasks, removeMasks Masks, newArg string) {

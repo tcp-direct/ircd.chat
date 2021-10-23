@@ -71,7 +71,7 @@ const (
 	IncludeSettings
 )
 
-// this is an OR of all possible flags
+// IncludeAllAttrs this is an OR of all possible flags
 const (
 	IncludeAllAttrs = ^uint(0)
 )
@@ -123,7 +123,7 @@ type ChannelRegistry struct {
 	server *Server
 }
 
-// NewChannelRegistry returns a new ChannelRegistry.
+// Initialize NewChannelRegistry returns a new ChannelRegistry.
 func (reg *ChannelRegistry) Initialize(server *Server) {
 	reg.server = server
 }

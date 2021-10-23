@@ -11,9 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ergochat/ergo/irc/utils"
 	"github.com/ergochat/irc-go/ircfmt"
 	"github.com/ergochat/irc-go/ircmsg"
+
+	"github.com/ergochat/ergo/irc/utils"
 )
 
 // defines an IRC service, e.g., NICKSERV
@@ -91,7 +92,7 @@ var (
 	}
 )
 
-// all services, by lowercase name
+// OragonoServices all services, by lowercase name
 var OragonoServices = map[string]*ircService{
 	"nickserv": nickservService,
 	"chanserv": chanservService,

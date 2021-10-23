@@ -69,7 +69,7 @@ func registrationErrorToMessage(config *Config, client *Client, err error) (mess
 	}
 
 	switch err {
-	case errAccountAlreadyRegistered, errAccountAlreadyVerified, errAccountAlreadyUnregistered, errAccountAlreadyLoggedIn, errAccountCreation, errAccountMustHoldNick, errAccountBadPassphrase, errCertfpAlreadyExists, errFeatureDisabled, errAccountBadPassphrase:
+	case errAccountAlreadyRegistered, errAccountAlreadyVerified, errAccountAlreadyUnregistered, errAccountAlreadyLoggedIn, errAccountCreation, errAccountMustHoldNick, errAccountBadPassphrase, errCertfpAlreadyExists, errFeatureDisabled:
 		message = err.Error()
 	case errLimitExceeded:
 		message = `There have been too many registration attempts recently; try again later`
@@ -100,7 +100,7 @@ func sendSuccessfulAccountAuth(service *ircService, client *Client, rb *Response
 	if service != nil {
 		service.Notice(rb, fmt.Sprintf(client.t("You're now logged in as %s"), details.accountName))
 	} else {
-		//TODO(dan): some servers send this numeric even for NickServ logins iirc? to confirm and maybe do too
+		// TODO(dan): some servers send this numeric even for NickServ logins iirc? to confirm and maybe do too
 		rb.Add(nil, client.server.name, RPL_LOGGEDIN, details.nick, details.nickMask, details.accountName, fmt.Sprintf(client.t("You are now logged in as %s"), details.accountName))
 		if forSASL {
 			rb.Add(nil, client.server.name, RPL_SASLSUCCESS, details.nick, client.t("Authentication successful"))
@@ -553,16 +553,9 @@ func capHandler(server *Server, client *Client, msg ircmsg.Message, rb *Response
 			rb.session.capState = caps.NegotiatingState
 		}
 
-		// make sure all capabilities actually exist
-		// #511, #521: oragono.io/nope is a fake cap to trap bad clients who blindly request
-		// every offered capability. during registration, requesting it produces a quit,
-		// otherwise just a CAP NAK
-		if badCaps || (toAdd.Has(caps.Nope) && client.registered) {
+		if badCaps && client.registered {
 			rb.Add(nil, server.name, "CAP", details.nick, "NAK", capString)
 			return false
-		} else if toAdd.Has(caps.Nope) && !client.registered {
-			client.Quit(fmt.Sprintf(client.t("Requesting the %s client capability is forbidden"), caps.Nope.Name()), rb.session)
-			return true
 		}
 
 		rb.session.capabilities.Union(toAdd)
@@ -1096,37 +1089,6 @@ Get an explanation of <argument>, or "index" for a list of help topics.`), rb)
 		rb.Add(nil, server.name, ERR_HELPNOTFOUND, client.Nick(), strings.ToUpper(utils.SafeErrorParam(argument)), client.t("Help not found"))
 	}
 
-	return false
-}
-
-// HISTORY <target> [<limit>]
-// e.g., HISTORY #ubuntu 10
-// HISTORY alice 15
-// HISTORY #darwin 1h
-func historyHandler(server *Server, client *Client, msg ircmsg.Message, rb *ResponseBuffer) bool {
-	config := server.Config()
-	if !config.History.Enabled {
-		rb.Notice(client.t("This command has been disabled by the server administrators"))
-		return false
-	}
-
-	items, channel, err := easySelectHistory(server, client, msg.Params)
-
-	if err == errNoSuchChannel {
-		rb.Add(nil, server.name, ERR_NOSUCHCHANNEL, client.Nick(), utils.SafeErrorParam(msg.Params[0]), client.t("No such channel"))
-		return false
-	} else if err != nil {
-		rb.Add(nil, server.name, ERR_UNKNOWNERROR, client.Nick(), msg.Command, client.t("Could not retrieve history"))
-		return false
-	}
-
-	if len(items) != 0 {
-		if channel != nil {
-			channel.replayHistoryItems(rb, items, false)
-		} else {
-			client.replayPrivmsgHistory(rb, items, "")
-		}
-	}
 	return false
 }
 
@@ -1714,8 +1676,16 @@ func cmodeHandler(server *Server, client *Client, msg ircmsg.Message, rb *Respon
 			return false
 		}
 	}
+
+	isSamode := msg.Command == "SAMODE"
+	if isSamode {
+		message := fmt.Sprintf("Operator %s ran SAMODE %s", client.Oper().Name, strings.Join(msg.Params, " "))
+		server.snomasks.Send(sno.LocalOpers, message)
+		server.logger.Info("opers", message)
+	}
+
 	// process mode changes, include list operations (an empty set of changes does a list)
-	applied := channel.ApplyChannelModeChanges(client, msg.Command == "SAMODE", changes, rb)
+	applied := channel.ApplyChannelModeChanges(client, isSamode, changes, rb)
 	details := client.Details()
 	isBot := client.HasMode(modes.Bot)
 	announceCmodeChanges(channel, applied, details.nickMask, details.accountName, details.account, isBot, rb)
@@ -2271,7 +2241,7 @@ func dispatchMessageToTarget(client *Client, tags map[string]string, histType hi
 		// the originating session may get an echo message:
 		rb.addEchoMessage(tags, nickMaskString, accountName, command, tnick, message)
 		if histType != history.Notice {
-			//TODO(dan): possibly implement cooldown of away notifications to users
+			// TODO(dan): possibly implement cooldown of away notifications to users
 			if away, awayMessage := user.Away(); away {
 				rb.Add(nil, server.name, RPL_AWAY, client.Nick(), tnick, awayMessage)
 			}
@@ -2910,12 +2880,6 @@ func setnameHandler(server *Server, client *Client, msg ircmsg.Message, rb *Resp
 	return false
 }
 
-// SUMMON [parameters]
-func summonHandler(server *Server, client *Client, msg ircmsg.Message, rb *ResponseBuffer) bool {
-	rb.Add(nil, server.name, ERR_SUMMONDISABLED, client.Nick(), client.t("SUMMON has been disabled"))
-	return false
-}
-
 // TIME
 func timeHandler(server *Server, client *Client, msg ircmsg.Message, rb *ResponseBuffer) bool {
 	rb.Add(nil, server.name, RPL_TIME, client.nick, server.name, time.Now().UTC().Format(time.RFC1123))
@@ -3274,7 +3238,7 @@ func (client *Client) rplWhoReply(channel *Channel, target *Client, rb *Response
 		params = append(params, fAccount)
 	}
 	if fields.Has('o') { // target's channel power level
-		//TODO: implement this
+		// TODO: implement this
 		params = append(params, "0")
 	}
 	if fields.Has('r') {
@@ -3336,12 +3300,12 @@ func whoHandler(server *Server, client *Client, msg ircmsg.Message, rb *Response
 		fields = fields.Add(field)
 	}
 
-	//TODO(dan): is this used and would I put this param in the Modern doc?
+	// TODO(dan): is this used and would I put this param in the Modern doc?
 	// if not, can we remove it?
-	//var operatorOnly bool
-	//if len(msg.Params) > 1 && msg.Params[1] == "o" {
+	// var operatorOnly bool
+	// if len(msg.Params) > 1 && msg.Params[1] == "o" {
 	//	operatorOnly = true
-	//}
+	// }
 
 	oper := client.Oper()
 	hasPrivs := oper.HasRoleCapab("sajoin")
@@ -3402,10 +3366,10 @@ func whoHandler(server *Server, client *Client, msg ircmsg.Message, rb *Response
 // WHOIS [<target>] <mask>{,<mask>}
 func whoisHandler(server *Server, client *Client, msg ircmsg.Message, rb *ResponseBuffer) bool {
 	var masksString string
-	//var target string
+	// var target string
 
 	if len(msg.Params) > 1 {
-		//target = msg.Params[0]
+		// target = msg.Params[0]
 		masksString = msg.Params[1]
 	} else {
 		masksString = msg.Params[0]

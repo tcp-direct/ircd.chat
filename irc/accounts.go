@@ -18,13 +18,14 @@ import (
 	"github.com/ergochat/irc-go/ircutils"
 	"github.com/xdg-go/scram"
 
+	"github.com/tidwall/buntdb"
+
 	"github.com/ergochat/ergo/irc/connection_limits"
 	"github.com/ergochat/ergo/irc/email"
 	"github.com/ergochat/ergo/irc/migrations"
 	"github.com/ergochat/ergo/irc/modes"
 	"github.com/ergochat/ergo/irc/passwd"
 	"github.com/ergochat/ergo/irc/utils"
-	"github.com/tidwall/buntdb"
 )
 
 const (
@@ -53,7 +54,7 @@ const (
 	maxCertfpsPerAccount = 5
 )
 
-// everything about accounts is persistent; therefore, the database is the authoritative
+// AccountManager everything about accounts is persistent; therefore, the database is the authoritative
 // source of truth for all account information. anything on the heap is just a cache
 type AccountManager struct {
 	sync.RWMutex                      // tier 2
@@ -258,7 +259,7 @@ func configuredEnforcementMethod(config *Config, storedMethod NickEnforcementMet
 	return
 }
 
-// Given a nick, looks up the account that owns it and the method (none/timeout/strict)
+// EnforcementStatus Given a nick, looks up the account that owns it and the method (none/timeout/strict)
 // used to enforce ownership.
 func (am *AccountManager) EnforcementStatus(cfnick, skeleton string) (account string, method NickEnforcementMethod) {
 	config := am.server.Config()
@@ -299,7 +300,7 @@ func (am *AccountManager) EnforcementStatus(cfnick, skeleton string) (account st
 	}
 }
 
-// Sets a custom enforcement method for an account and stores it in the database.
+// SetEnforcementStatus Sets a custom enforcement method for an account and stores it in the database.
 func (am *AccountManager) SetEnforcementStatus(account string, method NickEnforcementMethod) (finalSettings AccountSettings, err error) {
 	config := am.server.Config()
 	if !(config.Accounts.NickReservation.Enabled && config.Accounts.NickReservation.AllowCustomEnforcement) {
@@ -946,7 +947,7 @@ func (am *AccountManager) Verify(client *Client, account string, code string) er
 	return nil
 }
 
-// register and verify an account, for internal use
+// SARegister register and verify an account, for internal use
 func (am *AccountManager) SARegister(account, passphrase string) (err error) {
 	err = am.Register(nil, account, "admin", "", passphrase, "")
 	if err == nil {
@@ -984,7 +985,7 @@ func (am *AccountManager) NsSetEmail(client *Client, emailAddr string) (err erro
 	recordKey := fmt.Sprintf(keyAccountEmailChange, casefoldedAccount)
 	recordBytes, _ := json.Marshal(record)
 	recordVal := string(recordBytes)
-	am.server.store.Update(func(tx *buntdb.Tx) error {
+	err = am.server.store.Update(func(tx *buntdb.Tx) error {
 		tx.Set(recordKey, recordVal, nil)
 		return nil
 	})
@@ -1466,7 +1467,7 @@ func (am *AccountManager) LoadAccount(accountName string) (result ClientAccount,
 	return
 }
 
-// look up the unfolded version of an account name, possibly after deletion
+// AccountToAccountName look up the unfolded version of an account name, possibly after deletion
 func (am *AccountManager) AccountToAccountName(account string) (result string) {
 	casefoldedAccount, err := CasefoldName(account)
 	if err != nil {
@@ -1686,7 +1687,7 @@ func (am *AccountManager) ListSuspended() (result []AccountSuspension) {
 	return
 }
 
-// renames an account (within very restrictive limits); see #1380
+// Rename renames an account (within very restrictive limits); see #1380
 func (am *AccountManager) Rename(oldName, newName string) (err error) {
 	accountData, err := am.LoadAccount(oldName)
 	if err != nil {
@@ -1976,7 +1977,7 @@ func (am *AccountManager) ModifyAccountSettings(account string, munger settingsM
 	return
 }
 
-// represents someone's status in hostserv
+// VHostInfo represents someone's status in hostserv
 type VHostInfo struct {
 	ApprovedVHost string
 	Enabled       bool
@@ -2140,7 +2141,7 @@ type CredentialsVersion int
 const (
 	CredentialsLegacy     CredentialsVersion = 0
 	CredentialsSHA3Bcrypt CredentialsVersion = 1
-	// negative numbers for migration
+	// CredentialsAtheme negative numbers for migration
 	CredentialsAtheme = -1
 	CredentialsAnope  = -2
 )
@@ -2164,7 +2165,7 @@ func (ac *AccountCredentials) Empty() bool {
 	return len(ac.PassphraseHash) == 0 && len(ac.Certfps) == 0
 }
 
-// helper to assemble the serialized JSON for an account's credentials
+// Serialize helper to assemble the serialized JSON for an account's credentials
 func (ac *AccountCredentials) Serialize() (result string, err error) {
 	ac.Version = 1
 	credText, err := json.Marshal(*ac)
@@ -2287,7 +2288,7 @@ const (
 	MulticlientAllowedByUser
 )
 
-// controls whether/when clients without event-playback support see fake
+// ReplayJoinsSetting controls whether/when clients without event-playback support see fake
 // PRIVMSGs for JOINs
 type ReplayJoinsSetting uint
 
@@ -2311,7 +2312,7 @@ func replayJoinsSettingFromString(str string) (result ReplayJoinsSetting, err er
 	return
 }
 
-// XXX: AllowBouncer cannot be renamed AllowMulticlient because it is stored in
+// AccountSettings XXX: AllowBouncer cannot be renamed AllowMulticlient because it is stored in
 // persistent JSON blobs in the database
 type AccountSettings struct {
 	AutoreplayLines  *int

@@ -3,8 +3,10 @@
 
 package passwd
 
-import "golang.org/x/crypto/bcrypt"
-import "golang.org/x/crypto/sha3"
+import (
+	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/crypto/sha3"
+)
 
 const (
 	MinCost     = bcrypt.MinCost

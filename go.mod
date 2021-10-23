@@ -9,7 +9,6 @@ require (
 	github.com/ergochat/confusables v0.0.0-20201108231250-4ab98ab61fb1
 	github.com/ergochat/go-ident v0.0.0-20200511222032-830550b1d775
 	github.com/ergochat/irc-go v0.0.0-20210617222258-256f1601d3ce
-	github.com/go-sql-driver/mysql v1.6.0
 	github.com/go-test/deep v1.0.6 // indirect
 	github.com/golang-jwt/jwt v3.2.1+incompatible
 	github.com/gorilla/websocket v1.4.2

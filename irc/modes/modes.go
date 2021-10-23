@@ -109,7 +109,7 @@ const (
 	UserNoCTCP      Mode = 'T'
 	UserRoleplaying Mode = 'E'
 	WallOps         Mode = 'w'
-	Cloaked		Mode = 'x'
+	Cloaked         Mode = 'x'
 )
 
 // Channel Modes
@@ -124,7 +124,7 @@ const (
 	Moderated       Mode = 'm' // flag
 	NoOutside       Mode = 'n' // flag
 	OpOnlyTopic     Mode = 't' // flag
-	// RegisteredOnly mode is reused here from umode definition
+	// RegisteredOnlySpeak RegisteredOnlySpeak RegisteredOnly mode is reused here from umode definition
 	RegisteredOnlySpeak Mode = 'M' // flag
 	Secret              Mode = 's' // flag
 	UserLimit           Mode = 'l' // flag arg
@@ -340,13 +340,13 @@ const (
 	maxMode = 122 // 'z'
 )
 
-// returns a pointer to a new ModeSet
+// NewModeSet NewModeSet returns a pointer to a new ModeSet
 func NewModeSet() *ModeSet {
 	var set ModeSet
 	return &set
 }
 
-// test whether `mode` is set
+// HasMode HasMode test whether `mode` is set
 func (set *ModeSet) HasMode(mode Mode) bool {
 	if set == nil {
 		return false
@@ -355,17 +355,17 @@ func (set *ModeSet) HasMode(mode Mode) bool {
 	return utils.BitsetGet(set[:], uint(mode)-minMode)
 }
 
-// set `mode` to be on or off, return whether the value actually changed
+// SetMode SetMode set `mode` to be on or off, return whether the value actually changed
 func (set *ModeSet) SetMode(mode Mode, on bool) (applied bool) {
 	return utils.BitsetSet(set[:], uint(mode)-minMode, on)
 }
 
-// copy the contents of another modeset on top of this one
+// Copy Copy copy the contents of another modeset on top of this one
 func (set *ModeSet) Copy(other *ModeSet) {
 	utils.BitsetCopy(set[:], other[:])
 }
 
-// return the modes in the set as a slice
+// AllModes AllModes return the modes in the set as a slice
 func (set *ModeSet) AllModes() (result []Mode) {
 	if set == nil {
 		return
