@@ -56,7 +56,7 @@ const (
 	TorIdleTimeout = time.Second * 30
 	// This is how long a client gets without sending any message, including the PONG to our
 	// PING, before we disconnect them:
-	DefaultTotalTimeout = 5*time.Minute
+	DefaultTotalTimeout = 5 * time.Minute
 
 	// round off the ping interval by this much, see below:
 	PingCoalesceThreshold = time.Second
