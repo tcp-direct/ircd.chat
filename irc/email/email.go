@@ -131,7 +131,7 @@ func SendMail(config MailtoConfig, recipient string, msg []byte) (err error) {
 	}
 
 	var addr string
-	var auth smtp.Auth
+	var auth smtp.AuthMethod
 	if !config.DirectSendingEnabled() {
 		addr = fmt.Sprintf("%s:%d", config.MTAReal.Server, config.MTAReal.Port)
 		if config.MTAReal.Username != "" && config.MTAReal.Password != "" {

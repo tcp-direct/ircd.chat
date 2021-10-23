@@ -215,7 +215,7 @@ func (c *Client) Verify(addr string) error {
 // Auth authenticates a client using the provided authentication mechanism.
 // A failed authentication closes the connection.
 // Only servers that advertise the AUTH extension support this function.
-func (c *Client) Auth(a Auth) error {
+func (c *Client) Auth(a AuthMethod) error {
 	if err := c.hello(); err != nil {
 		return err
 	}
@@ -336,7 +336,7 @@ var testHookStartTLS func(*tls.Config) // nil, except for tests
 // functionality. Higher-level packages exist outside of the standard
 // library.
 // XXX: modified in Ergo to add `requireTLS`, `heloDomain`, and `timeout` arguments
-func SendMail(addr string, a Auth, heloDomain string, from string, to []string, msg []byte, requireTLS bool, timeout time.Duration) error {
+func SendMail(addr string, a AuthMethod, heloDomain string, from string, to []string, msg []byte, requireTLS bool, timeout time.Duration) error {
 	if err := validateLine(from); err != nil {
 		return err
 	}
