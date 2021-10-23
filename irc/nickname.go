@@ -9,11 +9,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ergochat/irc-go/ircfmt"
+
 	"github.com/ergochat/ergo/irc/history"
 	"github.com/ergochat/ergo/irc/modes"
 	"github.com/ergochat/ergo/irc/sno"
 	"github.com/ergochat/ergo/irc/utils"
-	"github.com/ergochat/irc-go/ircfmt"
 )
 
 var (

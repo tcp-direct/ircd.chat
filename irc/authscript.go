@@ -13,7 +13,7 @@ import (
 	"github.com/ergochat/ergo/irc/utils"
 )
 
-// JSON-serializable input and output types for the script
+// AuthScriptInput AuthScriptInput JSON-serializable input and output types for the script
 type AuthScriptInput struct {
 	AccountName string   `json:"accountName,omitempty"`
 	Passphrase  string   `json:"passphrase,omitempty"`

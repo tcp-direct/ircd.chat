@@ -3,8 +3,10 @@
 
 package caps
 
-import "testing"
-import "reflect"
+import (
+	"reflect"
+	"testing"
+)
 
 func TestSets(t *testing.T) {
 	s1 := NewSet()

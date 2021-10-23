@@ -4,9 +4,10 @@
 package history
 
 import (
-	"github.com/ergochat/ergo/irc/utils"
 	"sync"
 	"time"
+
+	"github.com/ergochat/ergo/irc/utils"
 )
 
 type ItemType uint

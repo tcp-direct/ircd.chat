@@ -13,7 +13,7 @@ type TargetListing struct {
 	Time   time.Time
 }
 
-// Merge `base`, a paging window of targets, with `extras` (the target entries
+// MergeTargets Merge `base`, a paging window of targets, with `extras` (the target entries
 // for all joined channels).
 func MergeTargets(base []TargetListing, extra []TargetListing, start, end time.Time, limit int) (results []TargetListing) {
 	if len(extra) == 0 {

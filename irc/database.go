@@ -637,13 +637,14 @@ func schemaChangeV9ToV10(config *Config, tx *buntdb.Tx) error {
 		return true
 	})
 	for i, account := range accounts {
-		time, err := strconv.ParseInt(times[i], 10, 64)
+		actTime, err := strconv.ParseInt(times[i], 10, 64)
 		if err != nil {
 			log.Printf("corrupt registration time entry for %s: %v\n", account, err)
 			continue
 		}
-		time = time * 1000000000
-		tx.Set(prefix+account, strconv.FormatInt(time, 10), nil)
+		// ????????????????? wtf are these people doing
+		actTime = actTime * 1000000000
+		tx.Set(prefix+account, strconv.FormatInt(actTime, 10), nil)
 	}
 	return nil
 }

@@ -9,7 +9,7 @@ import (
 	"syscall"
 )
 
-// Output a description of a connection that can identify it to other systems
+// DescribeConn Output a description of a connection that can identify it to other systems
 // administration tools.
 func DescribeConn(c net.Conn) (description string) {
 	description = "<error>"

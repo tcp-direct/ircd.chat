@@ -110,22 +110,22 @@ func (set *UserMaskSet) Masks() (result map[string]MaskInfo) {
 
 // Match matches the given n!u@h against the standard (non-ext) bans.
 func (set *UserMaskSet) Match(userhost string) bool {
-	regexp := (*regexp.Regexp)(atomic.LoadPointer(&set.regexp))
+	regx := (*regexp.Regexp)(atomic.LoadPointer(&set.regexp))
 
-	if regexp == nil {
+	if regx == nil {
 		return false
 	}
-	return regexp.MatchString(userhost)
+	return regx.MatchString(userhost)
 }
 
 // MatchMute matches the given NUH against the mute extbans.
 func (set *UserMaskSet) MatchMute(userhost string) bool {
-	regexp := set.MuteRegexp()
+	regx := set.MuteRegexp()
 
-	if regexp == nil {
+	if regx == nil {
 		return false
 	}
-	return regexp.MatchString(userhost)
+	return regx.MatchString(userhost)
 }
 
 func (set *UserMaskSet) MuteRegexp() *regexp.Regexp {

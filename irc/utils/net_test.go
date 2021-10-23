@@ -4,9 +4,11 @@
 
 package utils
 
-import "net"
-import "reflect"
-import "testing"
+import (
+	"net"
+	"reflect"
+	"testing"
+)
 
 func assertEqual(supplied, expected interface{}, t *testing.T) {
 	if !reflect.DeepEqual(supplied, expected) {

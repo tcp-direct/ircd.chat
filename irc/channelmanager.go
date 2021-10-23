@@ -33,7 +33,7 @@ type ChannelManager struct {
 	server              *Server
 }
 
-// NewChannelManager returns a new ChannelManager.
+// Initialize NewChannelManager returns a new ChannelManager.
 func (cm *ChannelManager) Initialize(server *Server) {
 	cm.chans = make(map[string]*channelManagerEntry)
 	cm.chansSkeletons = make(utils.StringSet)

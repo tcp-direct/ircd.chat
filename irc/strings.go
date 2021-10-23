@@ -47,15 +47,15 @@ var (
 type Casemapping uint
 
 const (
-	// "precis" is the default / zero value:
+	// CasemappingPRECIS "precis" is the default / zero value:
 	// casefolding/validation: PRECIS + ircd restrictions (like no *)
 	// confusables detection: standard skeleton algorithm
 	CasemappingPRECIS Casemapping = iota
-	// "ascii" is the traditional ircd behavior:
+	// CasemappingASCII "ascii" is the traditional ircd behavior:
 	// casefolding/validation: must be pure ASCII and follow ircd restrictions, ASCII lowercasing
 	// confusables detection: none
 	CasemappingASCII
-	// "permissive" is an insecure mode:
+	// CasemappingPermissive "permissive" is an insecure mode:
 	// casefolding/validation: arbitrary unicodes that follow ircd restrictions, unicode casefolding
 	// confusables detection: standard skeleton algorithm (which may be ineffective
 	// over the larger set of permitted identifiers)
@@ -225,7 +225,7 @@ func realSkeleton(name string) (string, error) {
 	return cases.Fold().String(name), nil
 }
 
-// maps a nickmask fragment to an expanded, casefolded wildcard:
+// CanonicalizeMaskWildcard maps a nickmask fragment to an expanded, casefolded wildcard:
 // Shivaram@good-fortune -> *!shivaram@good-fortune
 // EDMUND -> edmund!*@*
 func CanonicalizeMaskWildcard(userhost string) (expanded string, err error) {

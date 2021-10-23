@@ -18,7 +18,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -37,7 +36,6 @@ import (
 	"github.com/ergochat/ergo/irc/languages"
 	"github.com/ergochat/ergo/irc/logger"
 	"github.com/ergochat/ergo/irc/modes"
-	"github.com/ergochat/ergo/irc/mysql"
 	"github.com/ergochat/ergo/irc/passwd"
 	"github.com/ergochat/ergo/irc/utils"
 )
@@ -473,7 +471,7 @@ type OperConfig struct {
 	Modes       string
 }
 
-// Various server-enforced limits on data size.
+// Limits Various server-enforced limits on data size.
 type Limits struct {
 	AwayLen              int `yaml:"awaylen"`
 	ChanListModes        int `yaml:"chan-list-modes"`
@@ -618,7 +616,6 @@ type Config struct {
 	Datastore struct {
 		Path        string
 		AutoUpgrade bool
-		MySQL       mysql.Config
 	}
 
 	Accounts AccountConfig
@@ -945,9 +942,9 @@ func (conf *Config) prepareListeners() (err error) {
 		lconf.TLSConfig, err = loadTlsConfig(block)
 		if err != nil {
 			return &CertKeyError{
-					Err: err,
-					Details: addr,
-				}
+				Err:     err,
+				Details: addr,
+			}
 		}
 		lconf.RequireProxy = block.TLS.Proxy || block.Proxy
 		lconf.WebSocket = block.WebSocket
@@ -1136,7 +1133,7 @@ func LoadConfig(filename string) (config *Config, err error) {
 	if config.Datastore.Path == "" {
 		return nil, errors.New("Datastore path missing")
 	}
-	//dan: automagically fix identlen until a few releases in the future (from now, 0.12.0), being a newly-introduced limit
+	// dan: automagically fix identlen until a few releases in the future (from now, 0.12.0), being a newly-introduced limit
 	if config.Limits.IdentLen < 1 {
 		config.Limits.IdentLen = 20
 	}
@@ -1148,11 +1145,6 @@ func LoadConfig(filename string) (config *Config, err error) {
 	}
 	if config.Server.MaxLineLen < DefaultMaxLineLen {
 		config.Server.MaxLineLen = DefaultMaxLineLen
-	}
-	if config.Datastore.MySQL.Enabled {
-		if config.Limits.NickLen > mysql.MaxTargetLength || config.Limits.ChannelLen > mysql.MaxTargetLength {
-			return nil, fmt.Errorf("to use MySQL, nick and channel length limits must be %d or lower", mysql.MaxTargetLength)
-		}
 	}
 
 	if config.Server.CoerceIdent != "" {
@@ -1372,9 +1364,9 @@ func LoadConfig(filename string) (config *Config, err error) {
 
 	rawRegexp := config.Accounts.VHosts.ValidRegexpRaw
 	if rawRegexp != "" {
-		regexp, err := regexp.Compile(rawRegexp)
+		regx, err := regexp.Compile(rawRegexp)
 		if err == nil {
-			config.Accounts.VHosts.validRegexp = regexp
+			config.Accounts.VHosts.validRegexp = regx
 		} else {
 			log.Printf("invalid vhost regexp: %s\n", err.Error())
 		}
@@ -1484,10 +1476,6 @@ func LoadConfig(filename string) (config *Config, err error) {
 		config.History.Persistent.DirectMessages = PersistentDisabled
 	}
 
-	if config.History.Persistent.Enabled && !config.Datastore.MySQL.Enabled {
-		return nil, fmt.Errorf("You must configure a MySQL server in order to enable persistent history")
-	}
-
 	if config.History.ZNCMax == 0 {
 		config.History.ZNCMax = config.History.ChathistoryMax
 	}
@@ -1506,15 +1494,6 @@ func LoadConfig(filename string) (config *Config, err error) {
 	}
 
 	config.Roleplay.addSuffix = utils.BoolDefaultTrue(config.Roleplay.AddSuffix)
-
-	config.Datastore.MySQL.ExpireTime = time.Duration(config.History.Restrictions.ExpireTime)
-	config.Datastore.MySQL.TrackAccountMessages = config.History.Retention.EnableAccountIndexing
-	if config.Datastore.MySQL.MaxConns == 0 {
-		// #1622: not putting an upper limit on the number of MySQL connections is
-		// potentially dangerous. as a naive heuristic, assume they're running on the
-		// same machine:
-		config.Datastore.MySQL.MaxConns = runtime.NumCPU()
-	}
 
 	config.Server.Cloaks.Initialize()
 	if config.Server.Cloaks.Enabled {
@@ -1564,50 +1543,50 @@ func (config *Config) generateISupport() (err error) {
 	maxTargetsString := strconv.Itoa(maxTargets)
 
 	// add RPL_ISUPPORT tokens
-	isupport := &config.Server.isupport
-	isupport.Initialize()
-	isupport.Add("AWAYLEN", strconv.Itoa(config.Limits.AwayLen))
-	isupport.Add("BOT", "B")
-	isupport.Add("CASEMAPPING", "ascii")
-	isupport.Add("CHANLIMIT", fmt.Sprintf("%s:%d", chanTypes, config.Channels.MaxChannelsPerClient))
-	isupport.Add("CHANMODES", chanmodesToken)
+	isupp := &config.Server.isupport
+	isupp.Initialize()
+	isupp.Add("AWAYLEN", strconv.Itoa(config.Limits.AwayLen))
+	isupp.Add("BOT", "B")
+	isupp.Add("CASEMAPPING", "ascii")
+	isupp.Add("CHANLIMIT", fmt.Sprintf("%s:%d", chanTypes, config.Channels.MaxChannelsPerClient))
+	isupp.Add("CHANMODES", chanmodesToken)
 	if config.History.Enabled && config.History.ChathistoryMax > 0 {
-		isupport.Add("draft/CHATHISTORY", strconv.Itoa(config.History.ChathistoryMax))
+		isupp.Add("draft/CHATHISTORY", strconv.Itoa(config.History.ChathistoryMax))
 	}
-	isupport.Add("CHANNELLEN", strconv.Itoa(config.Limits.ChannelLen))
-	isupport.Add("CHANTYPES", chanTypes)
-	isupport.Add("ELIST", "U")
-	isupport.Add("EXCEPTS", "")
+	isupp.Add("CHANNELLEN", strconv.Itoa(config.Limits.ChannelLen))
+	isupp.Add("CHANTYPES", chanTypes)
+	isupp.Add("ELIST", "U")
+	isupp.Add("EXCEPTS", "")
 	if config.Extjwt.Default.Enabled() || len(config.Extjwt.Services) != 0 {
-		isupport.Add("EXTJWT", "1")
+		isupp.Add("EXTJWT", "1")
 	}
-	isupport.Add("EXTBAN", ",m")
-	isupport.Add("FORWARD", "f")
-	isupport.Add("INVEX", "")
-	isupport.Add("KICKLEN", strconv.Itoa(config.Limits.KickLen))
-	isupport.Add("MAXLIST", fmt.Sprintf("beI:%s", strconv.Itoa(config.Limits.ChanListModes)))
-	isupport.Add("MAXTARGETS", maxTargetsString)
-	isupport.Add("MODES", "")
-	isupport.Add("MONITOR", strconv.Itoa(config.Limits.MonitorEntries))
-	isupport.Add("NETWORK", config.Network.Name)
-	isupport.Add("NICKLEN", strconv.Itoa(config.Limits.NickLen))
-	isupport.Add("PREFIX", "(qaohv)~&@%+")
+	isupp.Add("EXTBAN", ",m")
+	isupp.Add("FORWARD", "f")
+	isupp.Add("INVEX", "")
+	isupp.Add("KICKLEN", strconv.Itoa(config.Limits.KickLen))
+	isupp.Add("MAXLIST", fmt.Sprintf("beI:%s", strconv.Itoa(config.Limits.ChanListModes)))
+	isupp.Add("MAXTARGETS", maxTargetsString)
+	isupp.Add("MODES", "")
+	isupp.Add("MONITOR", strconv.Itoa(config.Limits.MonitorEntries))
+	isupp.Add("NETWORK", config.Network.Name)
+	isupp.Add("NICKLEN", strconv.Itoa(config.Limits.NickLen))
+	isupp.Add("PREFIX", "(qaohv)~&@%+")
 	if config.Roleplay.Enabled {
-		isupport.Add("RPCHAN", "E")
-		isupport.Add("RPUSER", "E")
+		isupp.Add("RPCHAN", "E")
+		isupp.Add("RPUSER", "E")
 	}
-	isupport.Add("STATUSMSG", "~&@%+")
-	isupport.Add("TARGMAX", fmt.Sprintf("NAMES:1,LIST:1,KICK:,WHOIS:1,USERHOST:10,PRIVMSG:%s,TAGMSG:%s,NOTICE:%s,MONITOR:%d", maxTargetsString, maxTargetsString, maxTargetsString, config.Limits.MonitorEntries))
-	isupport.Add("TOPICLEN", strconv.Itoa(config.Limits.TopicLen))
+	isupp.Add("STATUSMSG", "~&@%+")
+	isupp.Add("TARGMAX", fmt.Sprintf("NAMES:1,LIST:1,KICK:,WHOIS:1,USERHOST:10,PRIVMSG:%s,TAGMSG:%s,NOTICE:%s,MONITOR:%d", maxTargetsString, maxTargetsString, maxTargetsString, config.Limits.MonitorEntries))
+	isupp.Add("TOPICLEN", strconv.Itoa(config.Limits.TopicLen))
 	if config.Server.Casemapping == CasemappingPRECIS {
-		isupport.Add("UTF8MAPPING", precisUTF8MappingToken)
+		isupp.Add("UTF8MAPPING", precisUTF8MappingToken)
 	}
 	if config.Server.EnforceUtf8 {
-		isupport.Add("UTF8ONLY", "")
+		isupp.Add("UTF8ONLY", "")
 	}
-	isupport.Add("WHOX", "")
+	isupp.Add("WHOX", "")
 
-	err = isupport.RegenerateCachedReply()
+	err = isupp.RegenerateCachedReply()
 	return
 }
 

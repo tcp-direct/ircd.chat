@@ -69,7 +69,7 @@ func registrationErrorToMessage(config *Config, client *Client, err error) (mess
 	}
 
 	switch err {
-	case errAccountAlreadyRegistered, errAccountAlreadyVerified, errAccountAlreadyUnregistered, errAccountAlreadyLoggedIn, errAccountCreation, errAccountMustHoldNick, errAccountBadPassphrase, errCertfpAlreadyExists, errFeatureDisabled, errAccountBadPassphrase:
+	case errAccountAlreadyRegistered, errAccountAlreadyVerified, errAccountAlreadyUnregistered, errAccountAlreadyLoggedIn, errAccountCreation, errAccountMustHoldNick, errAccountBadPassphrase, errCertfpAlreadyExists, errFeatureDisabled:
 		message = err.Error()
 	case errLimitExceeded:
 		message = `There have been too many registration attempts recently; try again later`
@@ -100,7 +100,7 @@ func sendSuccessfulAccountAuth(service *ircService, client *Client, rb *Response
 	if service != nil {
 		service.Notice(rb, fmt.Sprintf(client.t("You're now logged in as %s"), details.accountName))
 	} else {
-		//TODO(dan): some servers send this numeric even for NickServ logins iirc? to confirm and maybe do too
+		// TODO(dan): some servers send this numeric even for NickServ logins iirc? to confirm and maybe do too
 		rb.Add(nil, client.server.name, RPL_LOGGEDIN, details.nick, details.nickMask, details.accountName, fmt.Sprintf(client.t("You are now logged in as %s"), details.accountName))
 		if forSASL {
 			rb.Add(nil, client.server.name, RPL_SASLSUCCESS, details.nick, client.t("Authentication successful"))
@@ -2241,7 +2241,7 @@ func dispatchMessageToTarget(client *Client, tags map[string]string, histType hi
 		// the originating session may get an echo message:
 		rb.addEchoMessage(tags, nickMaskString, accountName, command, tnick, message)
 		if histType != history.Notice {
-			//TODO(dan): possibly implement cooldown of away notifications to users
+			// TODO(dan): possibly implement cooldown of away notifications to users
 			if away, awayMessage := user.Away(); away {
 				rb.Add(nil, server.name, RPL_AWAY, client.Nick(), tnick, awayMessage)
 			}
@@ -3238,7 +3238,7 @@ func (client *Client) rplWhoReply(channel *Channel, target *Client, rb *Response
 		params = append(params, fAccount)
 	}
 	if fields.Has('o') { // target's channel power level
-		//TODO: implement this
+		// TODO: implement this
 		params = append(params, "0")
 	}
 	if fields.Has('r') {
@@ -3300,12 +3300,12 @@ func whoHandler(server *Server, client *Client, msg ircmsg.Message, rb *Response
 		fields = fields.Add(field)
 	}
 
-	//TODO(dan): is this used and would I put this param in the Modern doc?
+	// TODO(dan): is this used and would I put this param in the Modern doc?
 	// if not, can we remove it?
-	//var operatorOnly bool
-	//if len(msg.Params) > 1 && msg.Params[1] == "o" {
+	// var operatorOnly bool
+	// if len(msg.Params) > 1 && msg.Params[1] == "o" {
 	//	operatorOnly = true
-	//}
+	// }
 
 	oper := client.Oper()
 	hasPrivs := oper.HasRoleCapab("sajoin")
@@ -3366,10 +3366,10 @@ func whoHandler(server *Server, client *Client, msg ircmsg.Message, rb *Response
 // WHOIS [<target>] <mask>{,<mask>}
 func whoisHandler(server *Server, client *Client, msg ircmsg.Message, rb *ResponseBuffer) bool {
 	var masksString string
-	//var target string
+	// var target string
 
 	if len(msg.Params) > 1 {
-		//target = msg.Params[0]
+		// target = msg.Params[0]
 		masksString = msg.Params[1]
 	} else {
 		masksString = msg.Params[0]

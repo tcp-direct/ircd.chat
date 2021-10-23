@@ -36,10 +36,10 @@ func maxReadQBytes() int {
 type IRCConn interface {
 	UnderlyingConn() *utils.WrappedConn
 
-	// these take an IRC line or lines, correctly terminated with CRLF:
+	// WriteLine these take an IRC line or lines, correctly terminated with CRLF:
 	WriteLine([]byte) error
 	WriteLines([][]byte) error
-	// this returns an IRC line, possibly terminated with CRLF, LF, or nothing:
+	// ReadLine this returns an IRC line, possibly terminated with CRLF, LF, or nothing:
 	ReadLine() (line []byte, err error)
 
 	Close() error

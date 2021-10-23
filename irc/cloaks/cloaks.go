@@ -49,7 +49,7 @@ func (cloakConfig *CloakConfig) SetSecret(secret string) {
 	cloakConfig.secret = secret
 }
 
-// simple cloaking algorithm: normalize the IP to its CIDR,
+// ComputeCloak simple cloaking algorithm: normalize the IP to its CIDR,
 // then hash the resulting bytes with a secret key,
 // then truncate to the desired length, b32encode, and append the fake TLD.
 func (config *CloakConfig) ComputeCloak(ip net.IP) string {

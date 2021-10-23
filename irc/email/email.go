@@ -83,7 +83,7 @@ func (config *MailtoConfig) Postprocess(heloDomain string) (err error) {
 	return config.DKIM.Postprocess()
 }
 
-// are we sending email directly, as opposed to deferring to an MTA?
+// DirectSendingEnabled are we sending email directly, as opposed to deferring to an MTA?
 func (config *MailtoConfig) DirectSendingEnabled() bool {
 	return config.MTAReal.Server == ""
 }

@@ -30,7 +30,7 @@ func StringToBool(str string) (result bool, err error) {
 	return
 }
 
-// Checks that a parameter can be passed as a non-trailing, and returns "*"
+// SafeErrorParam Checks that a parameter can be passed as a non-trailing, and returns "*"
 // if it can't. See #697.
 func SafeErrorParam(param string) string {
 	if param == "" || param[0] == ':' || strings.IndexByte(param, ' ') != -1 {

@@ -22,7 +22,7 @@ type Sequence interface {
 
 	ListCorrespondents(start, end Selector, limit int) (results []TargetListing, err error)
 
-	// this are weird hacks that violate the encapsulation of Sequence to some extent;
+	// Cutoff this are weird hacks that violate the encapsulation of Sequence to some extent;
 	// Cutoff() returns the cutoff time for other code to use (it returns the zero time
 	// if none is set), and Ephemeral() returns whether the backing store is in-memory
 	// or a persistent database.
@@ -30,7 +30,7 @@ type Sequence interface {
 	Ephemeral() bool
 }
 
-// This is a bad, slow implementation of CHATHISTORY AROUND using the BETWEEN semantics
+// GenericAround This is a bad, slow implementation of CHATHISTORY AROUND using the BETWEEN semantics
 func GenericAround(seq Sequence, start Selector, limit int) (results []Item, err error) {
 	var halfLimit int
 	halfLimit = (limit + 1) / 2

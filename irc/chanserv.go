@@ -10,10 +10,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ergochat/irc-go/ircfmt"
+
 	"github.com/ergochat/ergo/irc/modes"
 	"github.com/ergochat/ergo/irc/sno"
 	"github.com/ergochat/ergo/irc/utils"
-	"github.com/ergochat/irc-go/ircfmt"
 )
 
 const chanservHelp = `ChanServ lets you register and manage channels.`
@@ -565,6 +566,13 @@ func csTransferHandler(service *ircService, server *Server, client *Client, comm
 		}
 	}
 	if !isFounder {
+		if oper == nil {
+			message := fmt.Sprintf("Non oper but also non channel owner just ran CS TRANSFER on %s to account %s (!?)", chname, target)
+			for n := 0; n < 5; n++ {
+				server.snomasks.Send(sno.LocalOpers, message)
+			}
+			server.logger.Error("system", message)
+		}
 		message := fmt.Sprintf("Operator %s ran CS TRANSFER on %s to account %s", oper.Name, chname, target)
 		server.snomasks.Send(sno.LocalOpers, message)
 		server.logger.Info("opers", message)
@@ -602,7 +610,27 @@ func sendTransferPendingNotice(service *ircService, server *Server, account, chn
 			break // prefer the login where the nick is the account
 		}
 	}
-	client.Send(nil, service.prefix, "NOTICE", client.Nick(), fmt.Sprintf(client.t("You have been offered ownership of channel %[1]s. To accept, /CS TRANSFER ACCEPT %[1]s"), chname))
+
+	if client == nil {
+		message := fmt.Sprintf("sendTransferPendingNotice client is nil: " + chname)
+		server.logger.Error("system", message)
+		server.snomasks.Send(sno.LocalOpers, message)
+	}
+
+	server.snoErr(client.Send(nil,
+		service.prefix,
+		"NOTICE",
+		client.Nick(),
+		fmt.Sprintf(client.t("You have been offered ownership of channel %[1]s. To accept, /CS TRANSFER ACCEPT %[1]s"), chname)),
+	)
+}
+
+func (s *Server) snoErr(err error) {
+	if err == nil {
+		return
+	}
+	s.logger.Error("system", err.Error())
+	s.snomasks.Send(sno.LocalOpers, err.Error())
 }
 
 func processTransferAccept(service *ircService, client *Client, chname string, rb *ResponseBuffer) {
@@ -624,7 +652,13 @@ func processTransferAccept(service *ircService, client *Client, chname string, r
 	}
 }
 
-func csPurgeHandler(service *ircService, server *Server, client *Client, command string, params []string, rb *ResponseBuffer) {
+func csPurgeHandler(
+	service *ircService,
+	server *Server,
+	client *Client,
+	command string,
+	params []string,
+	rb *ResponseBuffer) {
 	oper := client.Oper()
 	if oper == nil {
 		return // should be impossible because you need oper capabs for this
@@ -699,9 +733,9 @@ func csPurgeDelHandler(service *ircService, client *Client, params []string, ope
 	chname := params[0]
 	switch client.server.channels.Unpurge(chname) {
 	case nil:
-		service.Notice(rb, fmt.Sprintf(client.t("Successfully unpurged channel %s from the server"), chname))
+		service.Notice(rb, fmt.Sprintf(client.t("[%s] successfully unpurged channel %s from the server"), operName, chname))
 	case errNoSuchChannel:
-		service.Notice(rb, fmt.Sprintf(client.t("Channel %s wasn't previously purged from the server"), chname))
+		service.Notice(rb, fmt.Sprintf(client.t("[%s] channel %s wasn't previously purged from the server"), operName, chname))
 	default:
 		service.Notice(rb, client.t("An error occurred"))
 	}

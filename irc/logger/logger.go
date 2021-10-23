@@ -8,10 +8,9 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"time"
-
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 // Level represents the level to log messages at.

@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	// slingamn's own private b32 alphabet, removing 1, l, o, and 0
+	// B32Encoder B32Encoder slingamn's own private b32 alphabet, removing 1, l, o, and 0
 	B32Encoder = base32.NewEncoding("abcdefghijkmnpqrstuvwxyz23456789").WithPadding(base32.NoPadding)
 
 	ErrInvalidCertfp = errors.New("Invalid certfp")
@@ -33,7 +33,7 @@ const (
 	SecretTokenLength = 26
 )
 
-// generate a secret token that cannot be brute-forced via online attacks
+// GenerateSecretToken GenerateSecretToken generate a secret token that cannot be brute-forced via online attacks
 func GenerateSecretToken() string {
 	// 128 bits of entropy are enough to resist any online attack:
 	var buf [16]byte
@@ -42,7 +42,7 @@ func GenerateSecretToken() string {
 	return B32Encoder.EncodeToString(buf[:])
 }
 
-// "munge" a secret token to a new value. requirements:
+// MungeSecretToken MungeSecretToken "munge" a secret token to a new value. requirements:
 // 1. MUST be roughly as unlikely to collide with `GenerateSecretToken` outputs
 // as those outputs are with each other
 // 2. SHOULD be deterministic (motivation: if a JOIN line has msgid x,
@@ -65,7 +65,7 @@ func MungeSecretToken(token string) (result string) {
 	return B32Encoder.EncodeToString(bytes)
 }
 
-// securely check if a supplied token matches a stored token
+// SecretTokensMatch securely check if a supplied token matches a stored token
 func SecretTokensMatch(storedToken string, suppliedToken string) bool {
 	// XXX fix a potential gotcha: if the stored token is uninitialized,
 	// then nothing should match it, not even supplying an empty token.
@@ -76,14 +76,14 @@ func SecretTokensMatch(storedToken string, suppliedToken string) bool {
 	return subtle.ConstantTimeCompare([]byte(storedToken), []byte(suppliedToken)) == 1
 }
 
-// generate a 256-bit secret key that can be written into a config file
+// GenerateSecretKey generate a 256-bit secret key that can be written into a config file
 func GenerateSecretKey() string {
 	var buf [32]byte
 	rand.Read(buf[:])
 	return base64.RawURLEncoding.EncodeToString(buf[:])
 }
 
-// Normalize openssl-formatted certfp's to oragono's format
+// NormalizeCertfp Normalize openssl-formatted certfp's to oragono's format
 func NormalizeCertfp(certfp string) (result string, err error) {
 	result = strings.ToLower(strings.Replace(certfp, ":", "", -1))
 	decoded, err := hex.DecodeString(result)

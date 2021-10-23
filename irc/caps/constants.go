@@ -55,12 +55,12 @@ const (
 	// LabelTagName is the tag name used for the labeled-response spec.
 	// https://ircv3.net/specs/extensions/labeled-response.html
 	LabelTagName = "label"
-	// More draft names associated with draft/multiline:
+	// MultilineBatchType MultilineBatchType More draft names associated with draft/multiline:
 	MultilineBatchType = "draft/multiline"
 	MultilineConcatTag = "draft/multiline-concat"
-	// draft/relaymsg:
+	// RelaymsgTagName RelaymsgTagName draft/relaymsg:
 	RelaymsgTagName = "draft/relaymsg"
-	// BOT mode: https://github.com/ircv3/ircv3-specifications/pull/439
+	// BotTagName BotTagName BOT mode: https://github.com/ircv3/ircv3-specifications/pull/439
 	BotTagName = "draft/bot"
 )
 

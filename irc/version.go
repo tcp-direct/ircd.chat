@@ -17,7 +17,7 @@ var (
 	Commit string
 )
 
-// initialize version strings (these are set in package main via linker flags)
+// SetVersionString initialize version strings (these are set in package main via linker flags)
 func SetVersionString(version, commit string) {
 	Commit = commit
 	if version != "" {

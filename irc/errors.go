@@ -84,7 +84,7 @@ var (
 )
 
 type CertKeyError struct {
-	Err error
+	Err     error
 	Details string
 }
 

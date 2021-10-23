@@ -5,6 +5,7 @@ package caps
 
 import (
 	"fmt"
+
 	"github.com/ergochat/ergo/irc/utils"
 )
 

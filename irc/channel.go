@@ -9,9 +9,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
-
 	"sync"
+	"time"
 
 	"github.com/ergochat/irc-go/ircutils"
 
@@ -150,7 +149,7 @@ func (channel *Channel) applyRegInfo(chanReg RegisteredChannel) {
 	channel.lists[modes.ExceptMask].SetMasks(chanReg.Excepts)
 }
 
-// obtain a consistent snapshot of the channel state that can be persisted to the DB
+// ExportRegistration obtain a consistent snapshot of the channel state that can be persisted to the DB
 func (channel *Channel) ExportRegistration(includeFlags uint) (info RegisteredChannel) {
 	channel.stateMutex.RLock()
 	defer channel.stateMutex.RUnlock()
@@ -719,10 +718,8 @@ func (channel *Channel) AddHistoryItem(item history.Item, account string) (err e
 		return
 	}
 
-	status, target, _ := channel.historyStatus(channel.server.Config())
-	if status == HistoryPersistent {
-		err = channel.server.historyDB.AddChannelItem(target, item, account)
-	} else if status == HistoryEphemeral {
+	status, _, _ := channel.historyStatus(channel.server.Config())
+	if status == HistoryEphemeral {
 		channel.history.Add(item)
 	}
 	return
@@ -1469,7 +1466,7 @@ func (channel *Channel) Kick(client *Client, target *Client, comment string, rb 
 	channel.Quit(target)
 }
 
-// handle a purge: kick everyone off the channel, clean up all the pointers between
+// Purge handle a purge: kick everyone off the channel, clean up all the pointers between
 // *Channel and *Client
 func (channel *Channel) Purge(source string) {
 	if source == "" {

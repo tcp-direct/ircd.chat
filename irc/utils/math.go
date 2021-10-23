@@ -3,7 +3,7 @@
 
 package utils
 
-// return n such that v <= n and n == 2**i for some i
+// RoundUpToPowerOfTwo return n such that v <= n and n == 2**i for some i
 func RoundUpToPowerOfTwo(v int) int {
 	// http://graphics.stanford.edu/~seander/bithacks.html
 	v -= 1

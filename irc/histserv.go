@@ -161,8 +161,6 @@ func histservExportAndNotify(service *ircService, server *Server, cfAccount stri
 	writer := bufio.NewWriter(outfile)
 	defer writer.Flush()
 
-	server.historyDB.Export(cfAccount, writer)
-
 	client := server.clients.Get(alertNick)
 	if client != nil && client.HasRoleCapabs("history") {
 		client.Send(nil, service.prefix, "NOTICE", client.Nick(), fmt.Sprintf(client.t("Data export for %[1]s completed and written to %[2]s"), cfAccount, filename))
