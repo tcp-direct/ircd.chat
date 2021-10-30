@@ -337,13 +337,27 @@ func (server *Server) tryRegister(c *Client, session *Session) (exiting bool) {
 	// count new user in statistics (before checking KLINEs, see #1303)
 	server.stats.Register(c.HasMode(modes.Invisible))
 
+	d := c.Details()
+	logMsg := "Client connected [%s] [u:%s] [r:%s]"
+	snoMsg := "Client connected [%s] [u:%s] [h:%s] [ip:%s] [r:%s]"
+
+	var isBanned bool
 	// check KLINEs (#671: ignore KLINEs for loopback connections)
 	if !session.IP().IsLoopback() || session.isTor {
-		isBanned, info := server.klines.CheckMasks(c.AllNickmasks()...)
-		if isBanned {
+		klined, info := server.klines.CheckMasks(c.AllNickmasks()...)
+		if klined {
+			isBanned = true
+			logMsg = logMsg + " KLINED"
+			snoMsg = snoMsg + " KLINED"
 			c.Quit(info.BanMessage(c.t("you got klined. reach out if it was a mistake. (%s)")), nil)
-			return true
 		}
+	}
+
+	server.logger.Info("connect", fmt.Sprintf(logMsg, d.nick, d.username, d.realname))
+	server.snomasks.Send(sno.LocalConnects, fmt.Sprintf(snoMsg, d.nick, d.username, session.rawHostname, session.IP().String(), d.realname))
+
+	if isBanned {
+		return true
 	}
 
 	server.playRegistrationBurst(session)
@@ -367,8 +381,6 @@ func (server *Server) playRegistrationBurst(session *Session) {
 	c := session.client
 	// continue registration
 	d := c.Details()
-	server.logger.Info("connect", fmt.Sprintf("Client connected [%s] [u:%s] [r:%s]", d.nick, d.username, d.realname))
-	server.snomasks.Send(sno.LocalConnects, fmt.Sprintf("Client connected [%s] [u:%s] [h:%s] [ip:%s] [r:%s]", d.nick, d.username, session.rawHostname, session.IP().String(), d.realname))
 	if d.account != "" {
 		server.sendLoginSnomask(d.nickMask, d.accountName)
 	}

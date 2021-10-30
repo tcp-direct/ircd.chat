@@ -7,7 +7,7 @@ package caps
 
 const (
 	// number of recognized capabilities:
-	numCapabs = 28
+	numCapabs = 27
 	// length of the uint64 array that represents the bitset:
 	bitsetLen = 1
 )
