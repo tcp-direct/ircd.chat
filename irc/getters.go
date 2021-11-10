@@ -77,7 +77,7 @@ func (client *Client) AllSessionData(currentSession *Session, hasPrivs bool) (da
 			currentIndex = i
 		}
 		data[i] = SessionData{
-			atime:     session.lastActive,
+			atime:     session.lastActive.Load().(time.Time),
 			ctime:     session.ctime,
 			hostname:  session.rawHostname,
 			certfp:    session.certfp,
@@ -456,11 +456,8 @@ func (client *Client) detailsNoMutex() (result ClientDetails) {
 }
 
 func (client *Client) UpdateActive(session *Session) {
-	now := time.Now().UTC()
-	client.stateMutex.Lock()
-	defer client.stateMutex.Unlock()
-	client.lastActive = now
-	session.lastActive = now
+	client.lastActive.Store(time.Now().UTC())
+	session.lastActive.Store(time.Now().UTC())
 }
 
 func (client *Client) Realname() string {

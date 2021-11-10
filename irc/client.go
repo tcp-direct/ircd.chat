@@ -49,7 +49,7 @@ const (
 	// RegisterTimeout is how long clients have to register before we disconnect them
 	RegisterTimeout = time.Minute
 	// DefaultIdleTimeout is how long without traffic before we send the client a PING
-	DefaultIdleTimeout = time.Minute + 30*time.Second
+	DefaultIdleTimeout = time.Minute
 	// TorIdleTimeout For Tor clients, we send a PING at least every 30 seconds, as a workaround for this bug
 	// (single-onion circuits will close unless the client sends data once every 60 seconds):
 	// https://bugs.torproject.org/29665
@@ -62,9 +62,7 @@ const (
 	PingCoalesceThreshold = time.Second
 )
 
-var (
-	MaxLineLen = DefaultMaxLineLen
-)
+var MaxLineLen = DefaultMaxLineLen
 
 // Client is an IRC client.
 type Client struct {
@@ -81,9 +79,9 @@ type Client struct {
 	invitedTo          map[string]channelInvite
 	isSTSOnly          bool
 	languages          []string
-	lastActive         time.Time            // last time they sent a command that wasn't PONG or similar
+	lastActive         atomic.Value         // last time they sent a command that wasn't PONG or similar
 	lastSeen           map[string]time.Time // maps device ID (including "") to time of last received command
-	lastSeenLastWrite  time.Time            // last time `lastSeen` was written to the datastore
+	lastSeenLastWrite  atomic.Value         // last time `lastSeen` was written to the datastore
 	loginThrottle      connection_limits.GenericThrottle
 	nextSessionID      int64 // Incremented when a new session is established
 	nick               string
@@ -142,10 +140,10 @@ type Session struct {
 	deviceID string
 
 	ctime      time.Time
-	lastActive time.Time // last non-CTCP PRIVMSG sent; updates publicly visible idle time
-	lastTouch  time.Time // last line sent; updates timer for idle timeouts
+	lastActive atomic.Value // last non-CTCP PRIVMSG sent; updates publicly visible idle time
+	lastTouch  atomic.Value // last line sent; updates timer for idle timeouts
 	idleTimer  *time.Timer
-	pingSent   bool // we sent PING to a putatively idle connection and we're waiting for PONG
+	pingSent   atomic.Value // we sent PING to a putatively idle connection and we're waiting for PONG
 
 	sessionID   int64
 	socket      *Socket
@@ -324,7 +322,7 @@ func (server *Server) RunClient(conn IRCConn) {
 	// give them 1k of grace over the limit:
 	socket := NewSocket(conn, config.Server.MaxSendQBytes)
 	client := &Client{
-		lastActive: now,
+		lastActive: atomic.Value{},
 		channels:   make(ChannelSet),
 		ctime:      now,
 		isSTSOnly:  wConn.Config.STSOnly,
@@ -344,6 +342,7 @@ func (server *Server) RunClient(conn IRCConn) {
 		nextSessionID:   1,
 		writerSemaphore: utils.NewSemaphore(1),
 	}
+	client.lastActive.Store(time.Now().UTC())
 	if requireSASL {
 		client.requireSASLMessage = banMsg
 	}
@@ -354,12 +353,14 @@ func (server *Server) RunClient(conn IRCConn) {
 		capVersion: caps.Cap301,
 		capState:   caps.NoneState,
 		ctime:      now,
-		lastActive: now,
+		lastActive: atomic.Value{},
 		realIP:     realIP,
 		proxiedIP:  proxiedIP,
 		isTor:      wConn.Config.Tor,
 		hideSTS:    wConn.Config.Tor || wConn.Config.HideSTS,
 	}
+	session.pingSent.Store(false)
+	session.lastActive.Store(time.Now().UTC())
 	client.sessions = []*Session{session}
 
 	session.resetFakelag()
@@ -406,7 +407,7 @@ func (server *Server) AddAlwaysOnClient(account ClientAccount, channelToStatus m
 
 	client := &Client{
 		lastSeen:   lastSeen,
-		lastActive: now,
+		lastActive: atomic.Value{},
 		channels:   make(ChannelSet),
 		ctime:      now,
 		languages:  server.Languages().Default(),
@@ -424,6 +425,8 @@ func (server *Server) AddAlwaysOnClient(account ClientAccount, channelToStatus m
 
 		writerSemaphore: utils.NewSemaphore(1),
 	}
+
+	client.lastActive.Store(time.Now().UTC())
 
 	if client.checkAlwaysOnExpirationNoMutex(config, true) {
 		server.logger.Debug("accounts", "always-on client not created due to expiration", account.Name)
@@ -746,19 +749,18 @@ func (client *Client) playReattachMessages(session *Session) {
 // at this time, modulo network latency and fakelag).
 func (client *Client) Touch(session *Session) {
 	var markDirty bool
-	now := time.Now().UTC()
-	client.stateMutex.Lock()
 	if client.registered {
-		client.updateIdleTimer(session, now)
+		client.updateIdleTimer(session, time.Now().UTC())
 		if client.alwaysOn {
-			client.setLastSeen(now, session.deviceID)
-			if now.Sub(client.lastSeenLastWrite) > lastSeenWriteInterval {
+			client.stateMutex.Lock()
+			client.setLastSeen(time.Now().UTC(), session.deviceID)
+			client.stateMutex.Unlock()
+			if time.Now().UTC().Sub(client.lastSeenLastWrite.Load().(time.Time)) > lastSeenWriteInterval {
 				markDirty = true
-				client.lastSeenLastWrite = now
+				client.lastSeenLastWrite.Store(time.Now().UTC())
 			}
 		}
 	}
-	client.stateMutex.Unlock()
 	if markDirty {
 		client.markDirty(IncludeLastSeen)
 	}
@@ -783,11 +785,11 @@ func (client *Client) setLastSeen(now time.Time, deviceID string) {
 }
 
 func (client *Client) updateIdleTimer(session *Session, now time.Time) {
-	session.lastTouch = now
-	session.pingSent = false
+	session.lastTouch.Store(now)
+	session.pingSent.Store(false)
 
 	if session.idleTimer == nil {
-		pingTimeout := 5 * time.Minute
+		pingTimeout := DefaultIdleTimeout
 		if session.isTor {
 			pingTimeout = TorIdleTimeout
 		}
@@ -797,25 +799,20 @@ func (client *Client) updateIdleTimer(session *Session, now time.Time) {
 
 func (session *Session) handleIdleTimeout() {
 	totalTimeout := DefaultTotalTimeout
-	pingTimeout := 5 * time.Minute
+	pingTimeout := DefaultIdleTimeout
 	if session.isTor {
 		pingTimeout = TorIdleTimeout
 	}
 
-	session.client.stateMutex.Lock()
-	now := time.Now()
-	timeUntilDestroy := session.lastTouch.Add(totalTimeout).Sub(now)
-	timeUntilPing := session.lastTouch.Add(pingTimeout).Sub(now)
-	shouldDestroy := session.pingSent && timeUntilDestroy <= 0
+	timeUntilDestroy := session.lastTouch.Load().(time.Time).Add(totalTimeout).Sub(time.Now())
+	timeUntilPing := session.lastTouch.Load().(time.Time).Add(pingTimeout).Sub(time.Now())
+	shouldDestroy := session.pingSent.Load().(bool) && timeUntilDestroy <= 0
 	// XXX this should really be time <= 0, but let's do some hacky timer coalescing:
 	// a typical idling client will do nothing other than respond immediately to our pings,
 	// so we'll PING at t=0, they'll respond at t=0.05, then we'll wake up at t=90 and find
 	// that we need to PING again at t=90.05. Rather than wake up again, just send it now:
-	shouldSendPing := !session.pingSent && timeUntilPing <= PingCoalesceThreshold
+	shouldSendPing := !session.pingSent.Load().(bool) && timeUntilPing <= PingCoalesceThreshold
 	if !shouldDestroy {
-		if shouldSendPing {
-			session.pingSent = true
-		}
 		// check in again at the minimum of these 3 possible intervals:
 		// 1. the ping timeout (assuming we PING and they reply immediately with PONG)
 		// 2. the next time we would send PING (if they don't send any more lines)
@@ -830,12 +827,14 @@ func (session *Session) handleIdleTimeout() {
 		session.idleTimer.Stop()
 		session.idleTimer.Reset(nextTimeout)
 	}
-	session.client.stateMutex.Unlock()
 
 	if shouldDestroy {
 		session.client.Quit(fmt.Sprintf("Ping timeout: %v", totalTimeout), session)
 		session.client.destroy(session)
-	} else if shouldSendPing {
+		return
+	}
+
+	if shouldSendPing {
 		session.Ping()
 	}
 }
@@ -850,6 +849,7 @@ func (session *Session) stopIdleTimer() {
 
 // Ping sends the client a PING message.
 func (session *Session) Ping() {
+	session.pingSent.Store(true)
 	session.Send(nil, "", "PING", session.client.Nick())
 }
 
@@ -919,7 +919,7 @@ func (client *Client) replayPrivmsgHistory(rb *ResponseBuffer, items []history.I
 func (client *Client) IdleTime() time.Duration {
 	client.stateMutex.RLock()
 	defer client.stateMutex.RUnlock()
-	return time.Since(client.lastActive)
+	return time.Since(client.lastActive.Load().(time.Time))
 }
 
 // SignonTime returns this client's signon time as a unix timestamp.
