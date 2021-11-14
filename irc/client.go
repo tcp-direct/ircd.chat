@@ -755,7 +755,10 @@ func (client *Client) Touch(session *Session) {
 			client.stateMutex.Lock()
 			client.setLastSeen(time.Now().UTC(), session.deviceID)
 			client.stateMutex.Unlock()
-			if time.Now().UTC().Sub(client.lastSeenLastWrite.Load().(time.Time)) > lastSeenWriteInterval {
+			if client.lastSeenLastWrite.Load() == nil {
+				markDirty = true
+				client.lastSeenLastWrite.Store(time.Now().UTC())
+			} else if time.Now().UTC().Sub(client.lastSeenLastWrite.Load().(time.Time)) > lastSeenWriteInterval {
 				markDirty = true
 				client.lastSeenLastWrite.Store(time.Now().UTC())
 			}
