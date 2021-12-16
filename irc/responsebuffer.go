@@ -9,8 +9,8 @@ import (
 
 	"github.com/ergochat/irc-go/ircmsg"
 
-	"github.com/ergochat/ergo/irc/caps"
-	"github.com/ergochat/ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd-ergo/irc/caps"
+	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
 )
 
 const (

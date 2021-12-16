@@ -11,10 +11,10 @@ import (
 
 	"github.com/ergochat/irc-go/ircfmt"
 
-	"github.com/ergochat/ergo/irc/history"
-	"github.com/ergochat/ergo/irc/modes"
-	"github.com/ergochat/ergo/irc/sno"
-	"github.com/ergochat/ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd-ergo/irc/history"
+	"git.tcp.direct/ircd/ircd-ergo/irc/modes"
+	"git.tcp.direct/ircd/ircd-ergo/irc/sno"
+	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
 )
 
 var (

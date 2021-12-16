@@ -13,10 +13,10 @@ import (
 
 	"github.com/ergochat/irc-go/ircfmt"
 
-	"github.com/ergochat/ergo/irc/custime"
-	"github.com/ergochat/ergo/irc/passwd"
-	"github.com/ergochat/ergo/irc/sno"
-	"github.com/ergochat/ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd-ergo/irc/custime"
+	"git.tcp.direct/ircd/ircd-ergo/irc/passwd"
+	"git.tcp.direct/ircd/ircd-ergo/irc/sno"
+	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
 )
 
 // "enabled" callbacks for specific nickserv commands
@@ -284,8 +284,8 @@ default.`,
 				`$bREPLAY-JOINS$b
 'replay-joins' controls whether replayed channel history will include
 lines for join and part. This provides more information about the context of
-messages, but may be spammy. Your options are 'always', 'never', and the default
-of 'commands-only' (the messages will be replayed in /HISTORY output, but not
+messages, but may be spammy. Your options are 'always' and the default of
+'commands-only' (the messages will be replayed in CHATHISTORY output, but not
 during autoreplay).`,
 				`$bALWAYS-ON$b
 'always-on' controls whether your nickname/identity will remain active
@@ -354,12 +354,13 @@ the result of a previous $bSENDPASS$b command.`,
 			handler: nsCertHandler,
 			help: `Syntax: $bCERT <LIST | ADD | DEL> [account] [certfp]$b
 
-CERT examines or modifies the TLS certificate fingerprints that can be used to
-log into an account. Specifically, $bCERT LIST$b lists the authorized
-fingerprints, $bCERT ADD <fingerprint>$b adds a new fingerprint, and
+CERT examines or modifies the SHA-256 TLS certificate fingerprints that can
+be used to log into an account. Specifically, $bCERT LIST$b lists the
+authorized fingerprints, $bCERT ADD <fingerprint>$b adds a new fingerprint, and
 $bCERT DEL <fingerprint>$b removes a fingerprint. If you're an IRC operator
 with the correct permissions, you can act on another user's account, for
-example with $bCERT ADD <account> <fingerprint>$b.`,
+example with $bCERT ADD <account> <fingerprint>$b. See the operator manual
+for instructions on how to compute the fingerprint.`,
 			helpShort: `$bCERT$b controls a user account's certificate fingerprints`,
 			enabled:   servCmdRequiresAuthEnabled,
 			minParams: 1,
@@ -376,7 +377,7 @@ the suspension. The $bDEL$b subcommand reverses a suspension, and the $bLIST$b
 command lists all current suspensions.`,
 			helpShort: `$bSUSPEND$b manages account suspensions`,
 			minParams: 1,
-			capabs:    []string{"accreg"},
+			capabs:    []string{"ban"},
 		},
 		"rename": {
 			handler: nsRenameHandler,
@@ -440,8 +441,6 @@ func displaySetting(service *ircService, settingName string, settings AccountSet
 			service.Notice(rb, client.t("You will see JOINs and PARTs in /HISTORY output, but not in autoreplay"))
 		case ReplayJoinsAlways:
 			service.Notice(rb, client.t("You will see JOINs and PARTs in /HISTORY output and in autoreplay"))
-		case ReplayJoinsNever:
-			service.Notice(rb, client.t("You will not see JOINs and PARTs in /HISTORY output or in autoreplay"))
 		}
 	case "multiclient":
 		if !config.Accounts.Multiclient.Enabled {
@@ -1005,6 +1004,7 @@ func nsRegisterHandler(service *ircService, server *Server, client *Client, comm
 			messageTemplate := client.t("Account created, pending verification; verification code has been sent to %s")
 			message := fmt.Sprintf(messageTemplate, callbackValue)
 			service.Notice(rb, message)
+			announcePendingReg(client, rb, account)
 		}
 	} else {
 		// details could not be stored and relevant numerics have been dispatched, abort
@@ -1132,8 +1132,12 @@ func nsConfirmPassword(server *Server, account, passphrase string) (errorMessage
 		errorMessage = `You're not logged into an account`
 	} else {
 		hash := accountData.Credentials.PassphraseHash
-		if hash != nil && passwd.CompareHashAndPassword(hash, []byte(passphrase)) != nil {
-			errorMessage = `Password incorrect`
+		if hash != nil {
+			if passphrase == "" {
+				errorMessage = `You must supply a password`
+			} else if passwd.CompareHashAndPassword(hash, []byte(passphrase)) != nil {
+				errorMessage = `Password incorrect`
+			}
 		}
 	}
 	return

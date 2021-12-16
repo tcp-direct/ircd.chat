@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ergochat/ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
 )
 
 var (

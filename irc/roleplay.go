@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ergochat/ergo/irc/history"
-	"github.com/ergochat/ergo/irc/modes"
-	"github.com/ergochat/ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd-ergo/irc/history"
+	"git.tcp.direct/ircd/ircd-ergo/irc/modes"
+	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
 )
 
 const (

@@ -12,9 +12,9 @@ import (
 
 	"github.com/ergochat/irc-go/ircfmt"
 
-	"github.com/ergochat/ergo/irc/modes"
-	"github.com/ergochat/ergo/irc/sno"
-	"github.com/ergochat/ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd-ergo/irc/modes"
+	"git.tcp.direct/ircd/ircd-ergo/irc/sno"
+	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
 )
 
 const chanservHelp = `ChanServ lets you register and manage channels.`
@@ -271,9 +271,13 @@ func csAmodeHandler(service *ircService, server *Server, client *Client, command
 			// #729: apply change to current membership
 			for _, member := range channel.Members() {
 				if member.Account() == change.Arg {
-					applied, change := channel.applyModeToMember(client, change, rb)
+					// applyModeToMember takes the nickname, not the account name,
+					// so translate:
+					modeChange := change
+					modeChange.Arg = member.Nick()
+					applied, modeChange := channel.applyModeToMember(client, modeChange, rb)
 					if applied {
-						announceCmodeChanges(channel, modes.ModeChanges{change}, server.name, "*", "", false, rb)
+						announceCmodeChanges(channel, modes.ModeChanges{modeChange}, server.name, "*", "", false, rb)
 					}
 				}
 			}
@@ -542,13 +546,11 @@ func csTransferHandler(service *ircService, server *Server, client *Client, comm
 	chname = regInfo.Name
 	account := client.Account()
 	isFounder := account != "" && account == regInfo.Founder
-	var oper *Oper
-	if !isFounder {
-		oper = client.Oper()
-		if !oper.HasRoleCapab("chanreg") {
-			service.Notice(rb, client.t("Insufficient privileges"))
-			return
-		}
+	oper := client.Oper()
+	hasPrivs := oper.HasRoleCapab("chanreg")
+	if !isFounder && !hasPrivs {
+		service.Notice(rb, client.t("Insufficient privileges"))
+		return
 	}
 	target := params[1]
 	targetAccount, err := server.accounts.LoadAccount(params[1])
@@ -577,7 +579,7 @@ func csTransferHandler(service *ircService, server *Server, client *Client, comm
 		server.snomasks.Send(sno.LocalOpers, message)
 		server.logger.Info("opers", message)
 	}
-	status, err := channel.Transfer(client, target, oper != nil)
+	status, err := channel.Transfer(client, target, hasPrivs)
 	if err == nil {
 		switch status {
 		case channelTransferComplete:
@@ -717,6 +719,7 @@ func csPurgeAddHandler(service *ircService, client *Client, params []string, ope
 			}
 		}
 		service.Notice(rb, fmt.Sprintf(client.t("Successfully purged channel %s from the server"), chname))
+		client.server.snomasks.Send(sno.LocalChannels, fmt.Sprintf("Operator %s purged channel %s [reason: %s]", operName, chname, reason))
 	case errInvalidChannelName:
 		service.Notice(rb, fmt.Sprintf(client.t("Can't purge invalid channel %s"), chname))
 	default:
@@ -734,6 +737,7 @@ func csPurgeDelHandler(service *ircService, client *Client, params []string, ope
 	switch client.server.channels.Unpurge(chname) {
 	case nil:
 		service.Notice(rb, fmt.Sprintf(client.t("[%s] successfully unpurged channel %s from the server"), operName, chname))
+		client.server.snomasks.Send(sno.LocalChannels, fmt.Sprintf("Operator %s removed purge of channel %s", operName, chname))
 	case errNoSuchChannel:
 		service.Notice(rb, fmt.Sprintf(client.t("[%s] channel %s wasn't previously purged from the server"), operName, chname))
 	default:

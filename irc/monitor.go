@@ -6,7 +6,7 @@ package irc
 import (
 	"sync"
 
-	"github.com/ergochat/ergo/irc/caps"
+	"git.tcp.direct/ircd/ircd-ergo/irc/caps"
 
 	"github.com/ergochat/irc-go/ircmsg"
 )

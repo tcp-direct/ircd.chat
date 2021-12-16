@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ergochat/ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
 )
 
 // Runtime Errors

@@ -25,14 +25,14 @@ import (
 	"github.com/ergochat/irc-go/ircutils"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/ergochat/ergo/irc/caps"
-	"github.com/ergochat/ergo/irc/custime"
-	"github.com/ergochat/ergo/irc/flatip"
-	"github.com/ergochat/ergo/irc/history"
-	"github.com/ergochat/ergo/irc/jwt"
-	"github.com/ergochat/ergo/irc/modes"
-	"github.com/ergochat/ergo/irc/sno"
-	"github.com/ergochat/ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd-ergo/irc/caps"
+	"git.tcp.direct/ircd/ircd-ergo/irc/custime"
+	"git.tcp.direct/ircd/ircd-ergo/irc/flatip"
+	"git.tcp.direct/ircd/ircd-ergo/irc/history"
+	"git.tcp.direct/ircd/ircd-ergo/irc/jwt"
+	"git.tcp.direct/ircd/ircd-ergo/irc/modes"
+	"git.tcp.direct/ircd/ircd-ergo/irc/sno"
+	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
 )
 
 // helper function to parse ACC callbacks, e.g., mailto:person@example.com, tel:16505551234
@@ -79,6 +79,10 @@ func registrationErrorToMessage(config *Config, client *Client, err error) (mess
 		message = `Could not register`
 	}
 	return
+}
+
+func announcePendingReg(client *Client, rb *ResponseBuffer, accountName string) {
+	client.server.snomasks.Send(sno.LocalAccounts, fmt.Sprintf(ircfmt.Unescape("Client $c[grey][$r%s$c[grey]] attempted to register account $c[grey][$r%s$c[grey]] from IP %s, pending verification"), client.Nick(), accountName, rb.session.IP().String()))
 }
 
 // helper function to dispatch messages when a client successfully registers
@@ -265,8 +269,7 @@ func authPlainHandler(server *Server, client *Client, session *Session, value []
 	password := string(splitValue[2])
 	err := server.accounts.AuthenticateByPassphrase(client, authcid, password)
 	if err != nil {
-		msg := authErrorToMessage(server, err)
-		rb.Add(nil, server.name, ERR_SASLFAIL, client.Nick(), fmt.Sprintf("%s: %s", client.t("SASL authentication failed"), client.t(msg)))
+		sendAuthErrorResponse(client, rb, err)
 		return false
 	} else if !fixupNickEqualsAccount(client, rb, server.Config(), "") {
 		return false
@@ -274,6 +277,14 @@ func authPlainHandler(server *Server, client *Client, session *Session, value []
 
 	sendSuccessfulAccountAuth(nil, client, rb, true)
 	return false
+}
+
+func sendAuthErrorResponse(client *Client, rb *ResponseBuffer, err error) {
+	msg := authErrorToMessage(client.server, err)
+	rb.Add(nil, client.server.name, ERR_SASLFAIL, client.nick, fmt.Sprintf("%s: %s", client.t("SASL authentication failed"), client.t(msg)))
+	if err == errAccountUnverified {
+		rb.Add(nil, client.server.name, "NOTE", "AUTHENTICATE", "VERIFICATION_REQUIRED", "*", client.t(err.Error()))
+	}
 }
 
 func authErrorToMessage(server *Server, err error) (msg string) {
@@ -325,8 +336,7 @@ func authExternalHandler(server *Server, client *Client, session *Session, value
 	}
 
 	if err != nil {
-		msg := authErrorToMessage(server, err)
-		rb.Add(nil, server.name, ERR_SASLFAIL, client.nick, fmt.Sprintf("%s: %s", client.t("SASL authentication failed"), client.t(msg)))
+		sendAuthErrorResponse(client, rb, err)
 		return false
 	} else if !fixupNickEqualsAccount(client, rb, server.Config(), "") {
 		return false
@@ -517,8 +527,8 @@ func capHandler(server *Server, client *Client, msg ircmsg.Message, rb *Response
 		// 1. WeeChat 1.4 won't accept the CAP reply unless it contains the server.name source
 		// 2. old versions of Kiwi and The Lounge can't parse multiline CAP LS 302 (#661),
 		// so try as hard as possible to get the response to fit on one line.
-		// :server.name CAP * LS * :<tokens>
-		// 1           7         4
+		// :server.name CAP * LS * :<tokens>\r\n
+		// 1           [ 7   ]  [4 ]        [2 ]
 		maxLen := (MaxLineLen - 2) - 1 - len(server.name) - 7 - len(subCommand) - 4
 		capLines := cset.Strings(version, values, maxLen)
 		for i, capStr := range capLines {
@@ -578,160 +588,8 @@ func capHandler(server *Server, client *Client, msg ircmsg.Message, rb *Response
 // CHATHISTORY <target> BETWEEN <query> <query> <direction> [<limit>]
 // e.g., CHATHISTORY #ircv3 BETWEEN timestamp=YYYY-MM-DDThh:mm:ss.sssZ timestamp=YYYY-MM-DDThh:mm:ss.sssZ + 100
 func chathistoryHandler(server *Server, client *Client, msg ircmsg.Message, rb *ResponseBuffer) (exiting bool) {
-	var items []history.Item
-	var target string
-	var channel *Channel
-	var sequence history.Sequence
-	var err error
-	var listTargets bool
-	var targets []history.TargetListing
-	defer func() {
-		// errors are sent either without a batch, or in a draft/labeled-response batch as usual
-		if err == utils.ErrInvalidParams {
-			rb.Add(nil, server.name, "FAIL", "CHATHISTORY", "INVALID_PARAMS", msg.Params[0], client.t("Invalid parameters"))
-		} else if !listTargets && sequence == nil {
-			rb.Add(nil, server.name, "FAIL", "CHATHISTORY", "INVALID_TARGET", msg.Params[0], utils.SafeErrorParam(target), client.t("Messages could not be retrieved"))
-		} else if err != nil {
-			rb.Add(nil, server.name, "FAIL", "CHATHISTORY", "MESSAGE_ERROR", msg.Params[0], client.t("Messages could not be retrieved"))
-		} else {
-			// successful responses are sent as a chathistory or history batch
-			if listTargets {
-				batchID := rb.StartNestedBatch("draft/chathistory-targets")
-				defer rb.EndNestedBatch(batchID)
-				for _, target := range targets {
-					name := server.UnfoldName(target.CfName)
-					rb.Add(nil, server.name, "CHATHISTORY", "TARGETS", name,
-						target.Time.Format(IRCv3TimestampFormat))
-				}
-			} else if channel != nil {
-				channel.replayHistoryItems(rb, items, false)
-			} else {
-				client.replayPrivmsgHistory(rb, items, target)
-			}
-		}
-	}()
-
-	config := server.Config()
-	maxChathistoryLimit := config.History.ChathistoryMax
-	if maxChathistoryLimit == 0 {
-		return
-	}
-	preposition := strings.ToLower(msg.Params[0])
-	target = msg.Params[1]
-	listTargets = (preposition == "targets")
-
-	parseQueryParam := func(param string) (msgid string, timestamp time.Time, err error) {
-		if param == "*" && (preposition == "before" || preposition == "between") {
-			// XXX compatibility with kiwi, which as of February 2020 is
-			// using BEFORE * as a synonym for LATEST *
-			return
-		}
-		err = utils.ErrInvalidParams
-		pieces := strings.SplitN(param, "=", 2)
-		if len(pieces) < 2 {
-			return
-		}
-		identifier, value := strings.ToLower(pieces[0]), pieces[1]
-		if identifier == "msgid" {
-			msgid, err = value, nil
-			return
-		} else if identifier == "timestamp" {
-			timestamp, err = time.Parse(IRCv3TimestampFormat, value)
-			return
-		}
-		return
-	}
-
-	parseHistoryLimit := func(paramIndex int) (limit int) {
-		if len(msg.Params) < (paramIndex + 1) {
-			return maxChathistoryLimit
-		}
-		limit, err := strconv.Atoi(msg.Params[paramIndex])
-		if err != nil || limit == 0 || limit > maxChathistoryLimit {
-			limit = maxChathistoryLimit
-		}
-		return
-	}
-
-	roundUp := func(endpoint time.Time) (result time.Time) {
-		return endpoint.Truncate(time.Millisecond).Add(time.Millisecond)
-	}
-
-	paramPos := 2
-	var start, end history.Selector
-	var limit int
-	switch preposition {
-	case "targets":
-		// use the same selector parsing as BETWEEN,
-		// except that we have no target so we have one fewer parameter
-		paramPos = 1
-		fallthrough
-	case "between":
-		start.Msgid, start.Time, err = parseQueryParam(msg.Params[paramPos])
-		if err != nil {
-			return
-		}
-		end.Msgid, end.Time, err = parseQueryParam(msg.Params[paramPos+1])
-		if err != nil {
-			return
-		}
-		// XXX preserve the ordering of the two parameters, since we might be going backwards,
-		// but round up the chronologically first one, whichever it is, to make it exclusive
-		if !start.Time.IsZero() && !end.Time.IsZero() {
-			if start.Time.Before(end.Time) {
-				start.Time = roundUp(start.Time)
-			} else {
-				end.Time = roundUp(end.Time)
-			}
-		}
-		limit = parseHistoryLimit(paramPos + 2)
-	case "before", "after", "around":
-		start.Msgid, start.Time, err = parseQueryParam(msg.Params[2])
-		if err != nil {
-			return
-		}
-		if preposition == "after" && !start.Time.IsZero() {
-			start.Time = roundUp(start.Time)
-		}
-		if preposition == "before" {
-			end = start
-			start = history.Selector{}
-		}
-		limit = parseHistoryLimit(3)
-	case "latest":
-		if msg.Params[2] != "*" {
-			end.Msgid, end.Time, err = parseQueryParam(msg.Params[2])
-			if err != nil {
-				return
-			}
-			if !end.Time.IsZero() {
-				end.Time = roundUp(end.Time)
-			}
-			start.Time = time.Now().UTC()
-		}
-		limit = parseHistoryLimit(3)
-	default:
-		err = utils.ErrInvalidParams
-		return
-	}
-
-	if listTargets {
-		targets, err = client.listTargets(start, end, limit)
-	} else {
-		channel, sequence, err = server.GetHistorySequence(nil, client, target)
-		if err != nil || sequence == nil {
-			return
-		}
-		if preposition == "around" {
-			items, err = sequence.Around(start, limit)
-		} else {
-			items, err = sequence.Between(start, end, limit)
-		}
-	}
-	return
+	return false
 }
-
-// DEBUG <subcmd>
 func debugHandler(server *Server, client *Client, msg ircmsg.Message, rb *ResponseBuffer) bool {
 	param := strings.ToUpper(msg.Params[0])
 
@@ -2567,6 +2425,7 @@ func registerHandler(server *Server, client *Client, msg ircmsg.Message, rb *Res
 		} else {
 			rb.Add(nil, server.name, "REGISTER", "VERIFICATION_REQUIRED", accountName, fmt.Sprintf(client.t("Account created, pending verification; verification code has been sent to %s"), callbackValue))
 			client.registerCmdSent = true
+			announcePendingReg(client, rb, accountName)
 		}
 	case errAccountAlreadyRegistered, errAccountAlreadyUnregistered, errAccountMustHoldNick:
 		rb.Add(nil, server.name, "FAIL", "REGISTER", "USERNAME_EXISTS", accountName, client.t("Username is already registered or otherwise unavailable"))
@@ -2670,7 +2529,7 @@ func relaymsgHandler(server *Server, client *Client, msg ircmsg.Message, rb *Res
 	message := utils.MakeMessage(rawMessage)
 
 	nick := msg.Params[1]
-	_, err := CasefoldName(nick)
+	cfnick, err := CasefoldName(nick)
 	if err != nil {
 		rb.Add(nil, server.name, "FAIL", "RELAYMSG", "INVALID_NICK", client.t("Invalid nickname"))
 		return false
@@ -2679,7 +2538,7 @@ func relaymsgHandler(server *Server, client *Client, msg ircmsg.Message, rb *Res
 		rb.Add(nil, server.name, "FAIL", "RELAYMSG", "INVALID_NICK", fmt.Sprintf(client.t("Relayed nicknames MUST contain a relaymsg separator from this set: %s"), config.Server.Relaymsg.Separators))
 		return false
 	}
-	if channel.relayNickMuted(nick) {
+	if channel.relayNickMuted(cfnick) {
 		rb.Add(nil, server.name, "FAIL", "RELAYMSG", "BANNED", fmt.Sprintf(client.t("%s is banned from relaying to the channel"), nick))
 		return false
 	}
@@ -3237,9 +3096,9 @@ func (client *Client) rplWhoReply(channel *Channel, target *Client, rb *Response
 		}
 		params = append(params, fAccount)
 	}
-	if fields.Has('o') { // target's channel power level
-		// TODO: implement this
-		params = append(params, "0")
+	if fields.Has('o') {
+		// channel oplevel, not implemented
+		params = append(params, "*")
 	}
 	if fields.Has('r') {
 		params = append(params, details.realname)
@@ -3257,12 +3116,15 @@ func (client *Client) rplWhoReply(channel *Channel, target *Client, rb *Response
 
 // WHO <mask> [<filter>%<fields>,<type>]
 func whoHandler(server *Server, client *Client, msg ircmsg.Message, rb *ResponseBuffer) bool {
-	mask := msg.Params[0]
-	var err error
-	if mask == "" {
-		rb.Add(nil, server.name, ERR_UNKNOWNERROR, client.nick, "WHO", client.t("First param must be a mask or channel"))
+	origMask := utils.SafeErrorParam(msg.Params[0])
+	if origMask != msg.Params[0] {
+		rb.Add(nil, server.name, ERR_UNKNOWNERROR, client.Nick(), "WHO", client.t("First param must be a mask or channel"))
 		return false
-	} else if mask[0] == '#' {
+	}
+
+	mask := origMask
+	var err error
+	if mask[0] == '#' {
 		mask, err = CasefoldChannel(msg.Params[0])
 	} else {
 		mask, err = CanonicalizeMaskWildcard(mask)
@@ -3300,12 +3162,18 @@ func whoHandler(server *Server, client *Client, msg ircmsg.Message, rb *Response
 		fields = fields.Add(field)
 	}
 
-	// TODO(dan): is this used and would I put this param in the Modern doc?
-	// if not, can we remove it?
-	// var operatorOnly bool
-	// if len(msg.Params) > 1 && msg.Params[1] == "o" {
-	//	operatorOnly = true
-	// }
+	// successfully parsed query, ensure we send the success response:
+	defer func() {
+		rb.Add(nil, server.name, RPL_ENDOFWHO, client.Nick(), origMask, client.t("End of WHO list"))
+	}()
+
+	// XXX #1730: https://datatracker.ietf.org/doc/html/rfc1459#section-4.5.1
+	// 'If the "o" parameter is passed only operators are returned according to
+	// the name mask supplied.'
+	// see discussion on #1730, we just return no results in this case.
+	if len(msg.Params) > 1 && msg.Params[1] == "o" {
+		return false
+	}
 
 	oper := client.Oper()
 	hasPrivs := oper.HasRoleCapab("sajoin")
@@ -3359,7 +3227,6 @@ func whoHandler(server *Server, client *Client, msg ircmsg.Message, rb *Response
 		}
 	}
 
-	rb.Add(nil, server.name, RPL_ENDOFWHO, client.nick, mask, client.t("End of WHO list"))
 	return false
 }
 

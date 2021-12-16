@@ -16,16 +16,15 @@ import (
 	"unicode"
 
 	"github.com/ergochat/irc-go/ircutils"
+	"github.com/tidwall/buntdb"
 	"github.com/xdg-go/scram"
 
-	"github.com/tidwall/buntdb"
-
-	"github.com/ergochat/ergo/irc/connection_limits"
-	"github.com/ergochat/ergo/irc/email"
-	"github.com/ergochat/ergo/irc/migrations"
-	"github.com/ergochat/ergo/irc/modes"
-	"github.com/ergochat/ergo/irc/passwd"
-	"github.com/ergochat/ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd-ergo/irc/connection_limits"
+	"git.tcp.direct/ircd/ircd-ergo/irc/email"
+	"git.tcp.direct/ircd/ircd-ergo/irc/migrations"
+	"git.tcp.direct/ircd/ircd-ergo/irc/modes"
+	"git.tcp.direct/ircd/ircd-ergo/irc/passwd"
+	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
 )
 
 const (
@@ -178,13 +177,13 @@ func (am *AccountManager) buildNickToAccountIndex(config *Config) {
 				}
 			}
 
-			if rawPrefs, err := tx.Get(fmt.Sprintf(keyAccountSettings, account)); err == nil {
+			if rawPrefs, err := tx.Get(fmt.Sprintf(keyAccountSettings, account)); err == nil && rawPrefs != "" {
 				var prefs AccountSettings
 				err := json.Unmarshal([]byte(rawPrefs), &prefs)
 				if err == nil && prefs.NickEnforcement != NickEnforcementOptional {
 					accountToMethod[account] = prefs.NickEnforcement
 				} else if err != nil {
-					am.server.logger.Error("internal", "corrupt account creds", account)
+					am.server.logger.Error("internal", "corrupt account settings", account, err.Error())
 				}
 			}
 
@@ -475,6 +474,8 @@ func (am *AccountManager) Register(client *Client, account string, callbackNames
 		am.Unregister(casefoldedAccount, true)
 		return &registrationCallbackError{underlying: err}
 	} else {
+		am.server.logger.Info("accounts",
+			fmt.Sprintf("nickname %s registered account %s, pending verification", client.Nick(), account))
 		return am.server.store.Update(func(tx *buntdb.Tx) error {
 			_, _, err = tx.Set(verificationCodeKey, code, setOptions)
 			return err
@@ -504,8 +505,8 @@ func registrationCallbackErrorText(config *Config, client *Client, err error) st
 	}
 }
 
-// validatePassphrase checks whether a passphrase is allowed by our rules
-func validatePassphrase(passphrase string) error {
+// ValidatePassphrase checks whether a passphrase is allowed by our rules
+func ValidatePassphrase(passphrase string) error {
 	// sanity check the length
 	if len(passphrase) == 0 || len(passphrase) > 300 {
 		return errAccountBadPassphrase
@@ -1123,7 +1124,7 @@ func (am *AccountManager) NsSendpass(client *Client, accountName string) (err er
 }
 
 func (am *AccountManager) NsResetpass(client *Client, accountName, code, password string) (err error) {
-	if validatePassphrase(password) != nil {
+	if ValidatePassphrase(password) != nil {
 		return errAccountBadPassphrase
 	}
 	account, err := am.LoadAccount(accountName)
@@ -2182,7 +2183,7 @@ func (ac *AccountCredentials) SetPassphrase(passphrase string, bcryptCost uint) 
 		return nil
 	}
 
-	if validatePassphrase(passphrase) != nil {
+	if ValidatePassphrase(passphrase) != nil {
 		return errAccountBadPassphrase
 	}
 
@@ -2295,7 +2296,6 @@ type ReplayJoinsSetting uint
 const (
 	ReplayJoinsCommandsOnly = iota // replay in HISTORY or CHATHISTORY output
 	ReplayJoinsAlways              // replay in HISTORY, CHATHISTORY, or autoreplay
-	ReplayJoinsNever               // never replay
 )
 
 func replayJoinsSettingFromString(str string) (result ReplayJoinsSetting, err error) {
@@ -2304,8 +2304,6 @@ func replayJoinsSettingFromString(str string) (result ReplayJoinsSetting, err er
 		result = ReplayJoinsCommandsOnly
 	case "always":
 		result = ReplayJoinsAlways
-	case "never":
-		result = ReplayJoinsNever
 	default:
 		err = errInvalidParams
 	}

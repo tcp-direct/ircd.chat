@@ -12,8 +12,8 @@ import (
 
 	"github.com/tidwall/buntdb"
 
-	"github.com/ergochat/ergo/irc/modes"
-	"github.com/ergochat/ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd-ergo/irc/modes"
+	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
 )
 
 // this is exclusively the *persistence* layer for channel registration;

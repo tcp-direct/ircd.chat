@@ -9,9 +9,9 @@ import (
 	"errors"
 	"net"
 
-	"github.com/ergochat/ergo/irc/flatip"
-	"github.com/ergochat/ergo/irc/modes"
-	"github.com/ergochat/ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd-ergo/irc/flatip"
+	"git.tcp.direct/ircd/ircd-ergo/irc/modes"
+	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
 )
 
 var (

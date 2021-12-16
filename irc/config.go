@@ -26,18 +26,18 @@ import (
 	"github.com/ergochat/irc-go/ircfmt"
 	"gopkg.in/yaml.v2"
 
-	"github.com/ergochat/ergo/irc/caps"
-	"github.com/ergochat/ergo/irc/cloaks"
-	"github.com/ergochat/ergo/irc/connection_limits"
-	"github.com/ergochat/ergo/irc/custime"
-	"github.com/ergochat/ergo/irc/email"
-	"github.com/ergochat/ergo/irc/isupport"
-	"github.com/ergochat/ergo/irc/jwt"
-	"github.com/ergochat/ergo/irc/languages"
-	"github.com/ergochat/ergo/irc/logger"
-	"github.com/ergochat/ergo/irc/modes"
-	"github.com/ergochat/ergo/irc/passwd"
-	"github.com/ergochat/ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd-ergo/irc/caps"
+	"git.tcp.direct/ircd/ircd-ergo/irc/cloaks"
+	"git.tcp.direct/ircd/ircd-ergo/irc/connection_limits"
+	"git.tcp.direct/ircd/ircd-ergo/irc/custime"
+	"git.tcp.direct/ircd/ircd-ergo/irc/email"
+	"git.tcp.direct/ircd/ircd-ergo/irc/isupport"
+	"git.tcp.direct/ircd/ircd-ergo/irc/jwt"
+	"git.tcp.direct/ircd/ircd-ergo/irc/languages"
+	"git.tcp.direct/ircd/ircd-ergo/irc/logger"
+	"git.tcp.direct/ircd/ircd-ergo/irc/modes"
+	"git.tcp.direct/ircd/ircd-ergo/irc/passwd"
+	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
 )
 
 // here's how this works: exported (capitalized) members of the config structs
@@ -590,6 +590,7 @@ type Config struct {
 		IPCheckScript            ScriptConfig `yaml:"ip-check-script"`
 		OverrideServicesHostname string       `yaml:"override-services-hostname"`
 		MaxLineLen               int          `yaml:"max-line-len"`
+		SuppressLusers           bool         `yaml:"suppress-lusers"`
 	}
 
 	Roleplay struct {

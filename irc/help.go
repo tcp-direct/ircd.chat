@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ergochat/ergo/irc/languages"
+	"git.tcp.direct/ircd/ircd-ergo/irc/languages"
 )
 
 // HelpEntryType represents the different sorts of help entries that can exist.

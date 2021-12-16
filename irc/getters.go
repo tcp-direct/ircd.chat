@@ -9,10 +9,10 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/ergochat/ergo/irc/caps"
-	"github.com/ergochat/ergo/irc/languages"
-	"github.com/ergochat/ergo/irc/modes"
-	"github.com/ergochat/ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd-ergo/irc/caps"
+	"git.tcp.direct/ircd/ircd-ergo/irc/languages"
+	"git.tcp.direct/ircd/ircd-ergo/irc/modes"
+	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
 )
 
 func (server *Server) Config() (config *Config) {

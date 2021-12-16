@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/ergochat/ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
 )
 
 // AuthScriptInput AuthScriptInput JSON-serializable input and output types for the script

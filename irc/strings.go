@@ -16,7 +16,7 @@ import (
 	"golang.org/x/text/unicode/norm"
 	"golang.org/x/text/width"
 
-	"github.com/ergochat/ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
 )
 
 const (

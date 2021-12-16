@@ -1,4 +1,4 @@
-module github.com/ergochat/ergo
+module git.tcp.direct/ircd/ircd-ergo
 
 go 1.17
 

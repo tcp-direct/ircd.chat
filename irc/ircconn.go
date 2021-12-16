@@ -12,7 +12,7 @@ import (
 	"github.com/ergochat/irc-go/ircreader"
 	"github.com/gorilla/websocket"
 
-	"github.com/ergochat/ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
 )
 
 const (

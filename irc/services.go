@@ -14,7 +14,7 @@ import (
 	"github.com/ergochat/irc-go/ircfmt"
 	"github.com/ergochat/irc-go/ircmsg"
 
-	"github.com/ergochat/ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
 )
 
 // defines an IRC service, e.g., NICKSERV

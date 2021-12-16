@@ -22,13 +22,13 @@ import (
 	"github.com/ergochat/irc-go/ircreader"
 	"github.com/xdg-go/scram"
 
-	"github.com/ergochat/ergo/irc/caps"
-	"github.com/ergochat/ergo/irc/connection_limits"
-	"github.com/ergochat/ergo/irc/flatip"
-	"github.com/ergochat/ergo/irc/history"
-	"github.com/ergochat/ergo/irc/modes"
-	"github.com/ergochat/ergo/irc/sno"
-	"github.com/ergochat/ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd-ergo/irc/caps"
+	"git.tcp.direct/ircd/ircd-ergo/irc/connection_limits"
+	"git.tcp.direct/ircd/ircd-ergo/irc/flatip"
+	"git.tcp.direct/ircd/ircd-ergo/irc/history"
+	"git.tcp.direct/ircd/ircd-ergo/irc/modes"
+	"git.tcp.direct/ircd/ircd-ergo/irc/sno"
+	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
 )
 
 const (
@@ -856,7 +856,7 @@ func (session *Session) Ping() {
 	session.Send(nil, "", "PING", session.client.Nick())
 }
 
-func (client *Client) replayPrivmsgHistory(rb *ResponseBuffer, items []history.Item, target string) {
+func (client *Client) replayPrivmsgHistory(rb *ResponseBuffer, items []history.Item, target string, chathistoryCommand bool) {
 	var batchID string
 	details := client.Details()
 	nick := details.nick
@@ -886,7 +886,7 @@ func (client *Client) replayPrivmsgHistory(rb *ResponseBuffer, items []history.I
 			if hasEventPlayback {
 				rb.AddFromClient(item.Message.Time, item.Message.Msgid, item.Nick, item.AccountName, item.IsBot, nil, "INVITE", nick, item.Message.Message)
 			} else {
-				rb.AddFromClient(item.Message.Time, utils.MungeSecretToken(item.Message.Msgid), histservService.prefix, "*", false, nil, "PRIVMSG", fmt.Sprintf(client.t("%[1]s invited you to channel %[2]s"), NUHToNick(item.Nick), item.Message.Message))
+				rb.AddFromClient(item.Message.Time, history.HistservMungeMsgid(item.Message.Msgid), histservService.prefix, "*", false, nil, "PRIVMSG", fmt.Sprintf(client.t("%[1]s invited you to channel %[2]s"), NUHToNick(item.Nick), item.Message.Message))
 			}
 			continue
 		case history.Privmsg:
@@ -896,10 +896,15 @@ func (client *Client) replayPrivmsgHistory(rb *ResponseBuffer, items []history.I
 		case history.Tagmsg:
 			if hasEventPlayback && hasTags {
 				command = "TAGMSG"
+			} else if chathistoryCommand {
+				// #1676: send something for TAGMSG; we can't discard it entirely
+				// because it'll break pagination
+				rb.AddFromClient(item.Message.Time, history.HistservMungeMsgid(item.Message.Msgid), histservService.prefix, "*", false, nil, "PRIVMSG", fmt.Sprintf(client.t("%[1]s sent you a TAGMSG"), NUHToNick(item.Nick)))
 			} else {
 				continue
 			}
 		default:
+			// see #1676, this shouldn't happen
 			continue
 		}
 		var tags map[string]string

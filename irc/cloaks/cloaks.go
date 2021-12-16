@@ -8,7 +8,7 @@ import (
 
 	"golang.org/x/crypto/sha3"
 
-	"github.com/ergochat/ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
 )
 
 type CloakConfig struct {
