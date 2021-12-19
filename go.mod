@@ -24,6 +24,8 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 )
 
+require git.tcp.direct/ircd/irc-go v0.0.0-20211219221708-8d8346959776
+
 require (
 	github.com/tidwall/btree v0.6.0 // indirect
 	github.com/tidwall/gjson v1.8.0 // indirect

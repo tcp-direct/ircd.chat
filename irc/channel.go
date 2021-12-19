@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ergochat/irc-go/ircutils"
+	"git.tcp.direct/ircd/irc-go/ircutils"
 
 	"git.tcp.direct/ircd/ircd-ergo/irc/caps"
 	"git.tcp.direct/ircd/ircd-ergo/irc/history"
@@ -748,38 +748,46 @@ func (channel *Channel) Join(client *Client, key string, isSajoin bool, rb *Resp
 		return nil, ""
 	}
 
-	// 0. SAJOIN always succeeds
-	// 1. the founder can always join (even if they disabled auto +q on join)
-	// 2. anyone who automatically receives halfop or higher can always join
-	// 3. people invited with INVITE can join
-	hasPrivs := isSajoin || (founder != "" && founder == details.account) ||
-		(persistentMode != 0 && persistentMode != modes.Voice) ||
-		client.CheckInvited(chcfname, createdAt)
-	if !hasPrivs {
-		if limit != 0 && chcount >= limit {
-			return errLimitExceeded, forward
-		}
+	switch {
+	case
+		// 0. SAJOIN always succeeds
+		isSajoin,
+		// 1. the founder can always join (even if they disabled auto +q on join)
+		founder == details.account && details.account != "",
+		// 2. anyone who automatically receives halfop or higher can always join
+		persistentMode != 0 && persistentMode != modes.Voice,
+		// 3. people invited with INVITE can join
+		client.CheckInvited(chcfname, createdAt):
 
-		if chkey != "" && !utils.SecretTokensMatch(chkey, key) {
-			return errWrongChannelKey, forward
-		}
+		break
 
-		if channel.flags.HasMode(modes.InviteOnly) &&
-			!channel.lists[modes.InviteMask].Match(details.nickMaskCasefolded) {
-			return errInviteOnly, forward
-		}
+	// If the channel has limited capacity and they are over said capacity, don't join.
+	case limit != 0 && chcount >= limit:
+		return errLimitExceeded, forward
 
-		if channel.lists[modes.BanMask].Match(details.nickMaskCasefolded) &&
-			!channel.lists[modes.ExceptMask].Match(details.nickMaskCasefolded) &&
-			!channel.lists[modes.InviteMask].Match(details.nickMaskCasefolded) {
+	// If they channel is +k (keyed), and the joinee does not have the correct key, don't join.
+	case chkey != "" && !utils.SecretTokensMatch(chkey, key):
+		return errWrongChannelKey, forward
+
+	// If the channel is invite only and they joinee does not have an invite exception, don't join.
+	case channel.flags.HasMode(modes.InviteOnly):
+		if channel.lists[modes.InviteMask].Match(details.nickMaskCasefolded) {
+			break
+		}
+		return errInviteOnly, forward
+
+	// If the channel has banned the joinee and there is no ban exception, don't join.
+	case channel.lists[modes.BanMask].Match(details.nickMaskCasefolded):
+		if channel.lists[modes.ExceptMask].Match(details.nickMaskCasefolded) {
 			// do not forward people who are banned:
 			return errBanned, ""
 		}
 
-		if details.account == "" &&
-			(channel.flags.HasMode(modes.RegisteredOnly) || channel.server.Defcon() <= 2) {
-			return errRegisteredOnly, forward
-		}
+	// If the channel is set to registered users only and there is no invite exception for the joinee, don't join.
+	case details.account == "" &&
+		(channel.flags.HasMode(modes.RegisteredOnly) || channel.server.Defcon() <= 2) &&
+		!channel.lists[modes.InviteMask].Match(details.nickMaskCasefolded):
+		return errRegisteredOnly, forward
 	}
 
 	if joinErr := client.addChannel(channel, rb == nil); joinErr != nil {
