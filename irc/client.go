@@ -174,7 +174,6 @@ type Session struct {
 
 	registrationMessages int
 
-	zncPlaybackTimes      *zncPlaybackTimes
 	autoreplayMissedSince time.Time
 
 	batch MultilineBatch
@@ -730,15 +729,8 @@ func (client *Client) playReattachMessages(session *Session) {
 		// because those caps disable autoreplay-on-join and they haven't sent the relevant
 		// *playback PRIVMSG or CHATHISTORY command yet
 		rb := NewResponseBuffer(session)
-		channel.autoReplayHistory(client, rb, "")
 		rb.Send(true)
 	}
-	if !session.autoreplayMissedSince.IsZero() && !hasHistoryCaps {
-		rb := NewResponseBuffer(session)
-		zncPlayPrivmsgsFromAll(client, rb, time.Now().UTC(), session.autoreplayMissedSince)
-		rb.Send(true)
-	}
-	session.autoreplayMissedSince = time.Time{}
 }
 
 //
@@ -854,73 +846,6 @@ func (session *Session) stopIdleTimer() {
 func (session *Session) Ping() {
 	session.pingSent.Store(true)
 	session.Send(nil, "", "PING", session.client.Nick())
-}
-
-func (client *Client) replayPrivmsgHistory(rb *ResponseBuffer, items []history.Item, target string, chathistoryCommand bool) {
-	var batchID string
-	details := client.Details()
-	nick := details.nick
-	if target == "" {
-		target = nick
-	}
-	batchID = rb.StartNestedHistoryBatch(target)
-
-	isSelfMessage := func(item *history.Item) bool {
-		// XXX: Params[0] is the message target. if the source of this message is an in-memory
-		// buffer, then it's "" for an incoming message and the recipient's nick for an outgoing
-		// message. if the source of the message is mysql, then mysql only sees one copy of the
-		// message, and it's the version with the recipient's nick filled in. so this is an
-		// incoming message if Params[0] (the recipient's nick) equals the client's nick:
-		return item.Params[0] != "" && item.Params[0] != nick
-	}
-
-	hasEventPlayback := rb.session.capabilities.Has(caps.EventPlayback)
-	hasTags := rb.session.capabilities.Has(caps.MessageTags)
-	for _, item := range items {
-		var command string
-		switch item.Type {
-		case history.Invite:
-			if isSelfMessage(&item) {
-				continue
-			}
-			if hasEventPlayback {
-				rb.AddFromClient(item.Message.Time, item.Message.Msgid, item.Nick, item.AccountName, item.IsBot, nil, "INVITE", nick, item.Message.Message)
-			} else {
-				rb.AddFromClient(item.Message.Time, history.HistservMungeMsgid(item.Message.Msgid), histservService.prefix, "*", false, nil, "PRIVMSG", fmt.Sprintf(client.t("%[1]s invited you to channel %[2]s"), NUHToNick(item.Nick), item.Message.Message))
-			}
-			continue
-		case history.Privmsg:
-			command = "PRIVMSG"
-		case history.Notice:
-			command = "NOTICE"
-		case history.Tagmsg:
-			if hasEventPlayback && hasTags {
-				command = "TAGMSG"
-			} else if chathistoryCommand {
-				// #1676: send something for TAGMSG; we can't discard it entirely
-				// because it'll break pagination
-				rb.AddFromClient(item.Message.Time, history.HistservMungeMsgid(item.Message.Msgid), histservService.prefix, "*", false, nil, "PRIVMSG", fmt.Sprintf(client.t("%[1]s sent you a TAGMSG"), NUHToNick(item.Nick)))
-			} else {
-				continue
-			}
-		default:
-			// see #1676, this shouldn't happen
-			continue
-		}
-		var tags map[string]string
-		if hasTags {
-			tags = item.Tags
-		}
-		if !isSelfMessage(&item) {
-			rb.AddSplitMessageFromClient(item.Nick, item.AccountName, item.IsBot, tags, command, nick, item.Message)
-		} else {
-			// this message was sent *from* the client to another nick; the target is item.Params[0]
-			// substitute client's current nickmask in case client changed nick
-			rb.AddSplitMessageFromClient(details.nickMask, item.AccountName, item.IsBot, tags, command, item.Params[0], item.Message)
-		}
-	}
-
-	rb.EndNestedBatch(batchID)
 }
 
 // IdleTime returns how long this client's been idle.

@@ -2020,9 +2020,8 @@ func dispatchMessageToTarget(client *Client, tags map[string]string, histType hi
 	} else {
 		lowercaseTarget := strings.ToLower(target)
 		service, isService := OragonoServices[lowercaseTarget]
-		_, isZNC := zncHandlers[lowercaseTarget]
 
-		if isService || isZNC {
+		if isService {
 			details := client.Details()
 			rb.addEchoMessage(tags, details.nickMask, details.accountName, command, target, message)
 			if histType != history.Privmsg {
@@ -2030,8 +2029,6 @@ func dispatchMessageToTarget(client *Client, tags map[string]string, histType hi
 			}
 			if isService {
 				servicePrivmsgHandler(service, server, client, message.Message, rb)
-			} else if isZNC {
-				zncPrivmsgHandler(client, lowercaseTarget, message.Message, rb)
 			}
 			return
 		}
@@ -3312,17 +3309,6 @@ func whowasHandler(server *Server, client *Client, msg ircmsg.Message, rb *Respo
 		}
 		rb.Add(nil, server.name, RPL_ENDOFWHOWAS, cnick, utils.SafeErrorParam(nickname), client.t("End of WHOWAS"))
 	}
-	return false
-}
-
-// ZNC <module> [params]
-func zncHandler(server *Server, client *Client, msg ircmsg.Message, rb *ResponseBuffer) bool {
-	params := msg.Params[1:]
-	// #1205: compatibility with Palaver, which sends `ZNC *playback :play ...`
-	if len(params) == 1 && strings.IndexByte(params[0], ' ') != -1 {
-		params = strings.Fields(params[0])
-	}
-	zncModuleHandler(client, msg.Params[0], params, rb)
 	return false
 }
 

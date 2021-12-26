@@ -83,13 +83,6 @@ var (
 		Commands:       hostservCommands,
 		HelpBanner:     hostservHelp,
 	}
-	histservService = &ircService{
-		Name:           "HistServ",
-		ShortName:      "HISTSERV",
-		CommandAliases: []string{"HISTSERV"},
-		Commands:       histservCommands,
-		HelpBanner:     histservHelp,
-	}
 )
 
 // OragonoServices all services, by lowercase name
@@ -97,7 +90,6 @@ var OragonoServices = map[string]*ircService{
 	"nickserv": nickservService,
 	"chanserv": chanservService,
 	"hostserv": hostservService,
-	"histserv": histservService,
 }
 
 func (service *ircService) Notice(rb *ResponseBuffer, text string) {
