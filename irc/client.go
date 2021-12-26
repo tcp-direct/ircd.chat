@@ -249,7 +249,7 @@ func (s *Session) IP() net.IP {
 // HasHistoryCaps returns whether the client supports a smart history replay cap,
 // and therefore autoreplay-on-join and similar should be suppressed
 func (session *Session) HasHistoryCaps() bool {
-	return session.capabilities.Has(caps.Chathistory) || session.capabilities.Has(caps.ZNCPlayback)
+	return false
 }
 
 // generates a batch ID. the uniqueness requirements for this are fairly weak:

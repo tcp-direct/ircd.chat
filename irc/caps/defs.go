@@ -112,14 +112,6 @@ const (
 	// UserhostInNames is the IRCv3 capability named "userhost-in-names":
 	// https://ircv3.net/specs/extensions/userhost-in-names-3.2.html
 	UserhostInNames Capability = iota
-
-	// ZNCPlayback is the ZNC vendor capability named "znc.in/playback":
-	// https://wiki.znc.in/Playback
-	ZNCPlayback Capability = iota
-
-	// ZNCSelfMessage is the ZNC vendor capability named "znc.in/self-message":
-	// https://wiki.znc.in/Query_buffers
-	ZNCSelfMessage Capability = iota
 )
 
 // `capabilityNames[capab]` is the string name of the capability `capab`
@@ -150,7 +142,5 @@ var (
 		"setname",
 		"sts",
 		"userhost-in-names",
-		"znc.in/playback",
-		"znc.in/self-message",
 	}
 )

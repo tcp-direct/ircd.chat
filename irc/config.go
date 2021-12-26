@@ -1408,7 +1408,6 @@ func LoadConfig(filename string) (config *Config, err error) {
 	config.History.ClientLength = 0
 	config.Server.supportedCaps.Disable(caps.Chathistory)
 	config.Server.supportedCaps.Disable(caps.EventPlayback)
-	config.Server.supportedCaps.Disable(caps.ZNCPlayback)
 	config.History.Persistent.Enabled = false
 	config.History.Persistent.UnregisteredChannels = false
 	config.History.Persistent.RegisteredChannels = PersistentDisabled
