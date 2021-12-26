@@ -232,39 +232,7 @@ func historyStatusToString(status HistoryStatus) string {
 
 // XXX you must have already checked History.Enabled before calling this
 func historyEnabled(serverSetting PersistentStatus, localSetting HistoryStatus) (result HistoryStatus) {
-	switch serverSetting {
-	case PersistentMandatory:
-		return HistoryPersistent
-	case PersistentOptOut:
-		if localSetting == HistoryDefault {
-			return HistoryPersistent
-		} else {
-			return localSetting
-		}
-	case PersistentOptIn:
-		switch localSetting {
-		case HistoryPersistent:
-			return HistoryPersistent
-		case HistoryEphemeral, HistoryDefault:
-			return HistoryEphemeral
-		default:
-			return HistoryDisabled
-		}
-	case PersistentDisabled:
-		if localSetting == HistoryDisabled {
-			return HistoryDisabled
-		} else {
-			return HistoryEphemeral
-		}
-	default:
-		// PersistentUnspecified: shouldn't happen because the deserializer converts it
-		// to PersistentDisabled
-		if localSetting == HistoryDefault {
-			return HistoryEphemeral
-		} else {
-			return localSetting
-		}
-	}
+	return HistoryDisabled
 }
 
 type MulticlientConfig struct {
@@ -1462,37 +1430,17 @@ func LoadConfig(filename string) (config *Config, err error) {
 	// in the current implementation, we disable history by creating a history buffer
 	// with zero capacity. but the `enabled` config option MUST be respected regardless
 	// of this detail
-	if !config.History.Enabled {
-		config.History.ChannelLength = 0
-		config.History.ClientLength = 0
-		config.Server.supportedCaps.Disable(caps.Chathistory)
-		config.Server.supportedCaps.Disable(caps.EventPlayback)
-		config.Server.supportedCaps.Disable(caps.ZNCPlayback)
-	}
+	config.History.ChannelLength = 0
+	config.History.ClientLength = 0
+	config.Server.supportedCaps.Disable(caps.Chathistory)
+	config.Server.supportedCaps.Disable(caps.EventPlayback)
+	config.Server.supportedCaps.Disable(caps.ZNCPlayback)
+	config.History.Persistent.Enabled = false
+	config.History.Persistent.UnregisteredChannels = false
+	config.History.Persistent.RegisteredChannels = PersistentDisabled
+	config.History.Persistent.DirectMessages = PersistentDisabled
 
-	if !config.History.Enabled || !config.History.Persistent.Enabled {
-		config.History.Persistent.Enabled = false
-		config.History.Persistent.UnregisteredChannels = false
-		config.History.Persistent.RegisteredChannels = PersistentDisabled
-		config.History.Persistent.DirectMessages = PersistentDisabled
-	}
-
-	if config.History.ZNCMax == 0 {
-		config.History.ZNCMax = config.History.ChathistoryMax
-	}
-
-	if config.History.Restrictions.QueryCutoff != "" {
-		config.History.Restrictions.queryCutoff, err = historyCutoffFromString(config.History.Restrictions.QueryCutoff)
-		if err != nil {
-			return nil, fmt.Errorf("invalid value of history.query-restrictions: %w", err)
-		}
-	} else {
-		if config.History.Restrictions.EnforceRegistrationDate_ {
-			config.History.Restrictions.queryCutoff = HistoryCutoffRegistrationTime
-		} else {
-			config.History.Restrictions.queryCutoff = HistoryCutoffNone
-		}
-	}
+	config.History.ZNCMax = 0
 
 	config.Roleplay.addSuffix = utils.BoolDefaultTrue(config.Roleplay.AddSuffix)
 
@@ -1551,9 +1499,6 @@ func (config *Config) generateISupport() (err error) {
 	isupp.Add("CASEMAPPING", "ascii")
 	isupp.Add("CHANLIMIT", fmt.Sprintf("%s:%d", chanTypes, config.Channels.MaxChannelsPerClient))
 	isupp.Add("CHANMODES", chanmodesToken)
-	if config.History.Enabled && config.History.ChathistoryMax > 0 {
-		isupp.Add("draft/CHATHISTORY", strconv.Itoa(config.History.ChathistoryMax))
-	}
 	isupp.Add("CHANNELLEN", strconv.Itoa(config.Limits.ChannelLen))
 	isupp.Add("CHANTYPES", chanTypes)
 	isupp.Add("ELIST", "U")
