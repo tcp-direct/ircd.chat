@@ -274,35 +274,10 @@ second client of yours that authenticates with SASL and requests the same nick
 is allowed to attach to the nick as well (this is comparable to the behavior
 of IRC "bouncers" like ZNC). Your options are 'on' (allow this behavior),
 'off' (disallow it), and 'default' (use the server default value).`,
-
-				`$bAUTOREPLAY-LINES$b
-'autoreplay-lines' controls the number of lines of channel history that will
-be replayed to you automatically when joining a channel. Your options are any
-positive number, 0 to disable the feature, and 'default' to use the server
-default.`,
-
-				`$bREPLAY-JOINS$b
-'replay-joins' controls whether replayed channel history will include
-lines for join and part. This provides more information about the context of
-messages, but may be spammy. Your options are 'always' and the default of
-'commands-only' (the messages will be replayed in CHATHISTORY output, but not
-during autoreplay).`,
 				`$bALWAYS-ON$b
 'always-on' controls whether your nickname/identity will remain active
 even while you are disconnected from the server. Your options are 'true',
 'false', and 'default' (use the server default value).`,
-				`$bAUTOREPLAY-MISSED$b
-'autoreplay-missed' is only effective for always-on clients. If enabled,
-if you have at most one active session, the server will remember the time
-you disconnect and then replay missed messages to you when you reconnect.
-Your options are 'on' and 'off'.`,
-				`$bDM-HISTORY$b
-'dm-history' is only effective for always-on clients. It lets you control
-how the history of your direct messages is stored. Your options are:
-1. 'off'        [no history]
-2. 'ephemeral'  [a limited amount of temporary history, not stored on disk]
-3. 'on'         [history stored in a permanent database, if available]
-4. 'default'    [use the server default]`,
 				`$bAUTO-AWAY$b
 'auto-away' is only effective for always-on clients. If enabled, you will
 automatically be marked away when all your sessions are disconnected, and
@@ -429,19 +404,6 @@ func displaySetting(service *ircService, settingName string, settings AccountSet
 		service.Notice(rb, fmt.Sprintf(client.t("Your stored nickname enforcement setting is: %s"), serializedStoredValue))
 		serializedActualValue := nickReservationToString(configuredEnforcementMethod(config, storedValue))
 		service.Notice(rb, fmt.Sprintf(client.t("Given current server settings, your nickname is enforced with: %s"), serializedActualValue))
-	case "autoreplay-lines":
-		if settings.AutoreplayLines == nil {
-			service.Notice(rb, fmt.Sprintf(client.t("You will receive the server default of %d lines of autoreplayed history"), config.History.AutoreplayOnJoin))
-		} else {
-			service.Notice(rb, fmt.Sprintf(client.t("You will receive %d lines of autoreplayed history"), *settings.AutoreplayLines))
-		}
-	case "replay-joins":
-		switch settings.ReplayJoins {
-		case ReplayJoinsCommandsOnly:
-			service.Notice(rb, client.t("You will see JOINs and PARTs in /HISTORY output, but not in autoreplay"))
-		case ReplayJoinsAlways:
-			service.Notice(rb, client.t("You will see JOINs and PARTs in /HISTORY output and in autoreplay"))
-		}
 	case "multiclient":
 		if !config.Accounts.Multiclient.Enabled {
 			service.Notice(rb, client.t("This feature has been disabled by the server administrators"))
@@ -468,18 +430,6 @@ func displaySetting(service *ircService, settingName string, settings AccountSet
 		} else {
 			service.Notice(rb, client.t("Given current server settings, your client is not always-on"))
 		}
-	case "autoreplay-missed":
-		stored := settings.AutoreplayMissed
-		if stored {
-			alwaysOn := persistenceEnabled(config.Accounts.Multiclient.AlwaysOn, settings.AlwaysOn)
-			if alwaysOn {
-				service.Notice(rb, client.t("Autoreplay of missed messages is enabled"))
-			} else {
-				service.Notice(rb, client.t("You have enabled autoreplay of missed messages, but you can't receive them because your client isn't set to always-on"))
-			}
-		} else {
-			service.Notice(rb, client.t("Your account is not configured to receive autoreplayed missed messages"))
-		}
 	case "auto-away":
 		stored := settings.AutoAway
 		alwaysOn := persistenceEnabled(config.Accounts.Multiclient.AlwaysOn, settings.AlwaysOn)
@@ -492,10 +442,6 @@ func displaySetting(service *ircService, settingName string, settings AccountSet
 		} else if !actual {
 			service.Notice(rb, client.t("Given current server settings, auto-away is disabled for your client"))
 		}
-	case "dm-history":
-		effectiveValue := historyEnabled(config.History.Persistent.DirectMessages, settings.DMHistory)
-		service.Notice(rb, fmt.Sprintf(client.t("Your stored direct message history setting is: %s"), historyStatusToString(settings.DMHistory)))
-		service.Notice(rb, fmt.Sprintf(client.t("Given current server settings, your direct message history setting is: %s"), historyStatusToString(effectiveValue)))
 	case "email":
 		if settings.Email != "" {
 			service.Notice(rb, fmt.Sprintf(client.t("Your stored e-mail address is: %s"), settings.Email))
@@ -641,16 +587,6 @@ func nsSetHandler(service *ircService, server *Server, client *Client, command s
 			munger = func(in AccountSettings) (out AccountSettings, err error) {
 				out = in
 				out.AutoAway = newValue
-				return
-			}
-		}
-	case "dm-history":
-		var newValue HistoryStatus
-		newValue, err = historyStatusFromString(params[1])
-		if err == nil {
-			munger = func(in AccountSettings) (out AccountSettings, err error) {
-				out = in
-				out.DMHistory = newValue
 				return
 			}
 		}

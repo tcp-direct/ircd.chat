@@ -334,17 +334,6 @@ func (client *Client) CloakedHostname() string {
 	return client.cloakedHostname
 }
 
-func (client *Client) historyCutoff() (cutoff time.Time) {
-	client.stateMutex.Lock()
-	if client.account != "" {
-		cutoff = client.accountRegDate
-	} else {
-		cutoff = client.ctime
-	}
-	client.stateMutex.Unlock()
-	return
-}
-
 func (client *Client) Logout() {
 	client.stateMutex.Lock()
 	client.account = ""
