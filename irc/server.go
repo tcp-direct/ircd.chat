@@ -632,15 +632,7 @@ func (server *Server) applyConfig(config *Config) (err error) {
 		if !oldConfig.Channels.Registration.Enabled {
 			server.channels.loadRegisteredChannels(config)
 		}
-		// resize history buffers as needed
-		if config.historyChangedFrom(oldConfig) {
-			for _, channel := range server.channels.Channels() {
-				channel.resizeHistory(config)
-			}
-			for _, client := range server.clients.AllClients() {
-				client.resizeHistory(config)
-			}
-		}
+
 		if oldConfig.Accounts.Registration.Throttling != config.Accounts.Registration.Throttling {
 			server.accounts.resetRegisterThrottle(config)
 		}
@@ -860,150 +852,10 @@ func (server *Server) setupListeners(config *Config) (err error) {
 // decide whether the ringbuf or mysql is authoritative about the client's
 // message history).
 func (server *Server) GetHistorySequence(providedChannel *Channel, client *Client, query string) (channel *Channel, sequence history.Sequence, err error) {
-	config := server.Config()
-	// 4 cases: {persistent, ephemeral} x {normal, conversation}
-	// with ephemeral history, target is implicit in the choice of `hist`,
-	// and correspondent is "" if we're retrieving a channel or *, and the correspondent's name
-	// if we're retrieving a DM conversation ("query buffer"). with persistent history,
-	// target is always nonempty, and correspondent is either empty or nonempty as before.
-	var status HistoryStatus
-	var correspondent string
-	var hist *history.Buffer
-	restriction := HistoryCutoffNone
-	channel = providedChannel
-	if channel == nil {
-		if strings.HasPrefix(query, "#") {
-			channel = server.channels.Get(query)
-			if channel == nil {
-				return
-			}
-		}
-	}
-	var joinTimeCutoff time.Time
-	if channel != nil {
-		if present, cutoff := channel.joinTimeCutoff(client); present {
-			joinTimeCutoff = cutoff
-		} else {
-			err = errInsufficientPrivs
-			return
-		}
-		status, _, restriction = channel.historyStatus(config)
-		switch status {
-		case HistoryEphemeral:
-			hist = &channel.history
-		case HistoryPersistent:
-			// already set `target`
-		default:
-			return
-		}
-	} else {
-		status, _ = client.historyStatus(config)
-		if query != "" {
-			correspondent, err = CasefoldName(query)
-			if err != nil {
-				return
-			}
-		}
-		switch status {
-		case HistoryEphemeral:
-			hist = &client.history
-		case HistoryPersistent:
-			// already set `target`, and `correspondent` if necessary
-		default:
-			return
-		}
-	}
-
-	var cutoff time.Time
-	if config.History.Restrictions.ExpireTime != 0 {
-		cutoff = time.Now().UTC().Add(-time.Duration(config.History.Restrictions.ExpireTime))
-	}
-	// #836: registration date cutoff is always enforced for DMs
-	// either way, take the later of the two cutoffs
-	if restriction == HistoryCutoffRegistrationTime || channel == nil {
-		regCutoff := client.historyCutoff()
-		if regCutoff.After(cutoff) {
-			cutoff = regCutoff
-		}
-	} else if restriction == HistoryCutoffJoinTime {
-		if joinTimeCutoff.After(cutoff) {
-			cutoff = joinTimeCutoff
-		}
-	}
-
-	// #836 again: grace period is never applied to DMs
-	if !cutoff.IsZero() && channel != nil && restriction != HistoryCutoffJoinTime {
-		cutoff = cutoff.Add(-time.Duration(config.History.Restrictions.GracePeriod))
-	}
-
-	if hist != nil {
-		sequence = hist.MakeSequence(correspondent, cutoff)
-	}
-
-	return
+	return providedChannel, nil, nil
 }
 
 func (server *Server) ForgetHistory(accountName string) {
-	// sanity check
-	if accountName == "*" {
-		return
-	}
-
-	config := server.Config()
-	if !config.History.Enabled {
-		return
-	}
-
-	persistent := config.History.Persistent
-	if persistent.Enabled && persistent.UnregisteredChannels && persistent.RegisteredChannels == PersistentMandatory && persistent.DirectMessages == PersistentMandatory {
-		return
-	}
-
-	predicate := func(item *history.Item) bool { return item.AccountName == accountName }
-
-	for _, channel := range server.channels.Channels() {
-		channel.history.Delete(predicate)
-	}
-
-	for _, client := range server.clients.AllClients() {
-		client.history.Delete(predicate)
-	}
-}
-
-// deletes a message. target is a hint about what buffer it's in (not required for
-// persistent history, where all the msgids are indexed together). if accountName
-// is anything other than "*", it must match the recorded AccountName of the message
-func (server *Server) DeleteMessage(target, msgid, accountName string) (err error) {
-	config := server.Config()
-	var hist *history.Buffer
-
-	if target != "" {
-		if target[0] == '#' {
-			channel := server.channels.Get(target)
-			if channel != nil {
-				if status, _, _ := channel.historyStatus(config); status == HistoryEphemeral {
-					hist = &channel.history
-				}
-			}
-		} else {
-			client := server.clients.Get(target)
-			if client != nil {
-				if status, _ := client.historyStatus(config); status == HistoryEphemeral {
-					hist = &client.history
-				}
-			}
-		}
-	}
-
-	if hist != nil {
-		count := hist.Delete(func(item *history.Item) bool {
-			return item.Message.Msgid == msgid && (accountName == "*" || item.AccountName == accountName)
-		})
-		if count == 0 {
-			err = errNoop
-		}
-	}
-
 	return
 }
 

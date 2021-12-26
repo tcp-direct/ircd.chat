@@ -4,6 +4,7 @@
 package irc
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"sort"
@@ -166,23 +167,6 @@ on the settings and their possible values, see HELP SET.`,
 				`Syntax $bSET #channel <setting> <value>$b
 
 SET modifies a channel's settings. The following settings are available:`,
-
-				`$bHISTORY$b
-'history' lets you control how channel history is stored. Your options are:
-1. 'off'        [no history]
-2. 'ephemeral'  [a limited amount of temporary history, not stored on disk]
-3. 'on'         [history stored in a permanent database, if available]
-4. 'default'    [use the server default]`,
-				`$bQUERY-CUTOFF$b
-'query-cutoff' lets you restrict how much channel history can be retrieved
-by unprivileged users. Your options are:
-1. 'none'               [no restrictions]
-2. 'registration-time'  [users can view history from after their account was
-                         registered, plus a grace period]
-3. 'join-time'          [users can view history from after they joined the
-                         channel; note that history will be effectively
-                         unavailable to clients that are not always-on]
-4. 'default'            [use the server default]`,
 			},
 			enabled:   chanregEnabled,
 			minParams: 3,
@@ -834,20 +818,9 @@ func csInfoHandler(service *ircService, server *Server, client *Client, command 
 }
 
 func displayChannelSetting(service *ircService, settingName string, settings ChannelSettings, client *Client, rb *ResponseBuffer) {
-	config := client.server.Config()
-
 	switch strings.ToLower(settingName) {
 	case "history":
-		effectiveValue := historyEnabled(config.History.Persistent.RegisteredChannels, settings.History)
-		service.Notice(rb, fmt.Sprintf(client.t("The stored channel history setting is: %s"), historyStatusToString(settings.History)))
-		service.Notice(rb, fmt.Sprintf(client.t("Given current server settings, the channel history setting is: %s"), historyStatusToString(effectiveValue)))
-	case "query-cutoff":
-		effectiveValue := settings.QueryCutoff
-		if effectiveValue == HistoryCutoffDefault {
-			effectiveValue = config.History.Restrictions.queryCutoff
-		}
-		service.Notice(rb, fmt.Sprintf(client.t("The stored channel history query cutoff setting is: %s"), historyCutoffToString(settings.QueryCutoff)))
-		service.Notice(rb, fmt.Sprintf(client.t("Given current server settings, the channel history query cutoff setting is: %s"), historyCutoffToString(effectiveValue)))
+		service.Notice(rb, fmt.Sprintf(client.t("History is completely disabled everywhere on ircd.chat.")))
 	default:
 		service.Notice(rb, client.t("Invalid params"))
 	}
@@ -883,21 +856,9 @@ func csSetHandler(service *ircService, server *Server, client *Client, command s
 
 	var err error
 	switch strings.ToLower(setting) {
-	case "history":
-		settings.History, err = historyStatusFromString(value)
-		if err != nil {
-			err = errInvalidParams
-			break
-		}
-		channel.SetSettings(settings)
-		channel.resizeHistory(server.Config())
-	case "query-cutoff":
-		settings.QueryCutoff, err = historyCutoffFromString(value)
-		if err != nil {
-			err = errInvalidParams
-			break
-		}
-		channel.SetSettings(settings)
+	default:
+		service.Notice(rb, client.t("No "+value+" here."))
+		err = errors.New("ircd.chat doesn't have history, and therefore has no settings here yet.")
 	}
 
 	switch err {
@@ -908,7 +869,8 @@ func csSetHandler(service *ircService, server *Server, client *Client, command s
 		service.Notice(rb, client.t("Invalid parameters"))
 	default:
 		server.logger.Error("internal", "CS SET error:", err.Error())
-		service.Notice(rb, client.t("An error occurred"))
+		// TODO: if we end up adding settings here we should likely not disclose this error
+		service.Notice(rb, client.t(err.Error()))
 	}
 }
 

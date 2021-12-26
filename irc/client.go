@@ -1670,23 +1670,7 @@ func (client *Client) checkLoginThrottle() (throttled bool, remainingTime time.D
 }
 
 func (client *Client) historyStatus(config *Config) (status HistoryStatus, target string) {
-	if !config.History.Enabled {
-		return HistoryDisabled, ""
-	}
-
-	client.stateMutex.RLock()
-	target = client.account
-	historyStatus := client.accountSettings.DMHistory
-	client.stateMutex.RUnlock()
-
-	if target == "" {
-		return HistoryEphemeral, ""
-	}
-	status = historyEnabled(config.History.Persistent.DirectMessages, historyStatus)
-	if status != HistoryPersistent {
-		target = ""
-	}
-	return
+	return HistoryDisabled, ""
 }
 
 func (client *Client) addHistoryItem(target *Client, item history.Item, details, tDetails *ClientDetails, config *Config) (err error) {

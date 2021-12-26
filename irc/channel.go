@@ -696,21 +696,7 @@ func (channel *Channel) joinTimeCutoff(client *Client) (present bool, cutoff tim
 }
 
 func channelHistoryStatus(config *Config, registered bool, storedStatus HistoryStatus) (result HistoryStatus) {
-	if !config.History.Enabled {
-		return HistoryDisabled
-	}
-
-	// ephemeral history: either the channel owner explicitly set the ephemeral preference,
-	// or persistent history is disabled for unregistered channels
-	if registered {
-		return historyEnabled(config.History.Persistent.RegisteredChannels, storedStatus)
-	} else {
-		if config.History.Persistent.UnregisteredChannels {
-			return HistoryPersistent
-		} else {
-			return HistoryEphemeral
-		}
-	}
+	return HistoryDisabled
 }
 
 func (channel *Channel) AddHistoryItem(item history.Item, account string) (err error) {

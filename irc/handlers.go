@@ -2628,13 +2628,6 @@ func renameHandler(server *Server, client *Client, msg ircmsg.Message, rb *Respo
 		return false
 	}
 
-	config := server.Config()
-	status, _, _ := channel.historyStatus(config)
-	if status == HistoryPersistent {
-		rb.Add(nil, server.name, "FAIL", "RENAME", "CANNOT_RENAME", oldName, utils.SafeErrorParam(newName), client.t("Channels with persistent history cannot be renamed"))
-		return false
-	}
-
 	// perform the channel rename
 	err := server.channels.Rename(oldName, newName)
 	if err == errInvalidChannelName {

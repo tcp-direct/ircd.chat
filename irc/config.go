@@ -194,40 +194,14 @@ const (
 	HistoryDefault HistoryStatus = iota
 	HistoryDisabled
 	HistoryEphemeral
-	HistoryPersistent
 )
 
 func historyStatusFromString(str string) (status HistoryStatus, err error) {
-	switch strings.ToLower(str) {
-	case "default":
-		return HistoryDefault, nil
-	case "ephemeral":
-		return HistoryEphemeral, nil
-	case "persistent":
-		return HistoryPersistent, nil
-	default:
-		b, err := utils.StringToBool(str)
-		if b {
-			return HistoryPersistent, err
-		} else {
-			return HistoryDisabled, err
-		}
-	}
+	return HistoryDisabled, err
 }
 
 func historyStatusToString(status HistoryStatus) string {
-	switch status {
-	case HistoryDefault:
-		return "default"
-	case HistoryDisabled:
 		return "disabled"
-	case HistoryEphemeral:
-		return "ephemeral"
-	case HistoryPersistent:
-		return "persistent"
-	default:
-		return ""
-	}
 }
 
 // XXX you must have already checked History.Enabled before calling this
@@ -1572,16 +1546,6 @@ func (config *Config) Diff(oldConfig *Config) (addedCaps, removedCaps *caps.Set)
 	}
 
 	return
-}
-
-// determine whether we need to resize / create / destroy
-// the in-memory history buffers:
-func (config *Config) historyChangedFrom(oldConfig *Config) bool {
-	return config.History.Enabled != oldConfig.History.Enabled ||
-		config.History.ChannelLength != oldConfig.History.ChannelLength ||
-		config.History.ClientLength != oldConfig.History.ClientLength ||
-		config.History.AutoresizeWindow != oldConfig.History.AutoresizeWindow ||
-		config.History.Persistent != oldConfig.History.Persistent
 }
 
 func compileGuestRegexp(guestFormat string, casemapping Casemapping) (standard, folded *regexp.Regexp, err error) {
