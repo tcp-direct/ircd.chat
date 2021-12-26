@@ -6,7 +6,7 @@ package irc
 import (
 	"testing"
 
-	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd/irc/utils"
 )
 
 func TestGenerateBatchID(t *testing.T) {

@@ -5,7 +5,7 @@ package irc
 import (
 	"runtime"
 
-	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd/irc/utils"
 )
 
 // See #237 for context. Operations that might allocate large amounts of temporary

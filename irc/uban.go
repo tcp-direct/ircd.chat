@@ -11,10 +11,10 @@ import (
 
 	"github.com/ergochat/irc-go/ircmsg"
 
-	"git.tcp.direct/ircd/ircd-ergo/irc/custime"
-	"git.tcp.direct/ircd/ircd-ergo/irc/flatip"
-	"git.tcp.direct/ircd/ircd-ergo/irc/sno"
-	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd/irc/custime"
+	"git.tcp.direct/ircd/ircd/irc/flatip"
+	"git.tcp.direct/ircd/ircd/irc/sno"
+	"git.tcp.direct/ircd/ircd/irc/utils"
 )
 
 func consumeDuration(params []string, rb *ResponseBuffer) (duration time.Duration, requireSASL bool, remainingParams []string, err error) {

@@ -6,7 +6,7 @@ package caps
 import (
 	"fmt"
 
-	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd/irc/utils"
 )
 
 // Set holds a set of enabled capabilities.

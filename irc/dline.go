@@ -12,7 +12,7 @@ import (
 
 	"github.com/tidwall/buntdb"
 
-	"git.tcp.direct/ircd/ircd-ergo/irc/flatip"
+	"git.tcp.direct/ircd/ircd/irc/flatip"
 )
 
 const (

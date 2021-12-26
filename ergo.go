@@ -18,9 +18,9 @@ import (
 
 	"github.com/docopt/docopt-go"
 
-	"git.tcp.direct/ircd/ircd-ergo/irc"
-	"git.tcp.direct/ircd/ircd-ergo/irc/logger"
-	"git.tcp.direct/ircd/ircd-ergo/irc/mkcerts"
+	"git.tcp.direct/ircd/ircd/irc"
+	"git.tcp.direct/ircd/ircd/irc/logger"
+	"git.tcp.direct/ircd/ircd/irc/mkcerts"
 )
 
 // set via linker flags, either by make or by goreleaser:

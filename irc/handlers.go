@@ -25,14 +25,14 @@ import (
 	"github.com/ergochat/irc-go/ircutils"
 	"golang.org/x/crypto/bcrypt"
 
-	"git.tcp.direct/ircd/ircd-ergo/irc/caps"
-	"git.tcp.direct/ircd/ircd-ergo/irc/custime"
-	"git.tcp.direct/ircd/ircd-ergo/irc/flatip"
-	"git.tcp.direct/ircd/ircd-ergo/irc/history"
-	"git.tcp.direct/ircd/ircd-ergo/irc/jwt"
-	"git.tcp.direct/ircd/ircd-ergo/irc/modes"
-	"git.tcp.direct/ircd/ircd-ergo/irc/sno"
-	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd/irc/caps"
+	"git.tcp.direct/ircd/ircd/irc/custime"
+	"git.tcp.direct/ircd/ircd/irc/flatip"
+	"git.tcp.direct/ircd/ircd/irc/history"
+	"git.tcp.direct/ircd/ircd/irc/jwt"
+	"git.tcp.direct/ircd/ircd/irc/modes"
+	"git.tcp.direct/ircd/ircd/irc/sno"
+	"git.tcp.direct/ircd/ircd/irc/utils"
 )
 
 // helper function to parse ACC callbacks, e.g., mailto:person@example.com, tel:16505551234

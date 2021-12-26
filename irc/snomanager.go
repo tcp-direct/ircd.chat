@@ -6,7 +6,7 @@ import (
 
 	"github.com/ergochat/irc-go/ircfmt"
 
-	"git.tcp.direct/ircd/ircd-ergo/irc/sno"
+	"git.tcp.direct/ircd/ircd/irc/sno"
 )
 
 // SnoManager keeps track of which clients to send snomasks to.

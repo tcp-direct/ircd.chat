@@ -13,7 +13,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd/irc/utils"
 )
 
 var (

@@ -10,8 +10,8 @@ import (
 
 	"github.com/ergochat/irc-go/ircfmt"
 
-	"git.tcp.direct/ircd/ircd-ergo/irc/sno"
-	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd/irc/sno"
+	"git.tcp.direct/ircd/ircd/irc/utils"
 )
 
 const (

@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"strings"
 
-	"git.tcp.direct/ircd/ircd-ergo/irc/history"
-	"git.tcp.direct/ircd/ircd-ergo/irc/modes"
-	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd/irc/history"
+	"git.tcp.direct/ircd/ircd/irc/modes"
+	"git.tcp.direct/ircd/ircd/irc/utils"
 )
 
 const (

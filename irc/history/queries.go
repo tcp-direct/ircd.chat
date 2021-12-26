@@ -4,7 +4,6 @@
 package history
 
 import (
-	"strings"
 	"time"
 )
 
@@ -82,12 +81,12 @@ func MinMaxAsc(after, before, cutoff time.Time) (min, max time.Time, ascending b
 // maps regular msgids from JOIN, etc. to a msgid suitable for attaching
 // to a HistServ message describing the JOIN. See #491 for some history.
 func HistservMungeMsgid(msgid string) string {
-	return "_" + msgid
+	return ""
 }
 
 // strips munging from a msgid. future schemes may not support a well-defined
 // mapping of munged msgids to true msgids, but munged msgids should always contain
 // a _, with metadata in front and data (possibly the true msgid) after.
 func NormalizeMsgid(msgid string) string {
-	return strings.TrimPrefix(msgid, "_")
+	return ""
 }

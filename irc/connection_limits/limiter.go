@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"git.tcp.direct/ircd/ircd-ergo/irc/flatip"
-	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd/irc/flatip"
+	"git.tcp.direct/ircd/ircd/irc/utils"
 )
 
 var (

@@ -1,4 +1,4 @@
-module git.tcp.direct/ircd/ircd-ergo
+module git.tcp.direct/ircd/ircd
 
 go 1.17
 

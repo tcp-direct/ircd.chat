@@ -13,10 +13,10 @@ import (
 
 	"github.com/ergochat/irc-go/ircfmt"
 
-	"git.tcp.direct/ircd/ircd-ergo/irc/custime"
-	"git.tcp.direct/ircd/ircd-ergo/irc/passwd"
-	"git.tcp.direct/ircd/ircd-ergo/irc/sno"
-	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd/irc/custime"
+	"git.tcp.direct/ircd/ircd/irc/passwd"
+	"git.tcp.direct/ircd/ircd/irc/sno"
+	"git.tcp.direct/ircd/ircd/irc/utils"
 )
 
 // "enabled" callbacks for specific nickserv commands

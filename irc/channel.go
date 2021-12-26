@@ -14,10 +14,10 @@ import (
 
 	"git.tcp.direct/ircd/irc-go/ircutils"
 
-	"git.tcp.direct/ircd/ircd-ergo/irc/caps"
-	"git.tcp.direct/ircd/ircd-ergo/irc/history"
-	"git.tcp.direct/ircd/ircd-ergo/irc/modes"
-	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd/irc/caps"
+	"git.tcp.direct/ircd/ircd/irc/history"
+	"git.tcp.direct/ircd/ircd/irc/modes"
+	"git.tcp.direct/ircd/ircd/irc/utils"
 )
 
 type ChannelSettings struct {
@@ -788,6 +788,9 @@ func (channel *Channel) Join(client *Client, key string, isSajoin bool, rb *Resp
 		(channel.flags.HasMode(modes.RegisteredOnly) || channel.server.Defcon() <= 2) &&
 		!channel.lists[modes.InviteMask].Match(details.nickMaskCasefolded):
 		return errRegisteredOnly, forward
+
+	default:
+		//
 	}
 
 	if joinErr := client.addChannel(channel, rb == nil); joinErr != nil {

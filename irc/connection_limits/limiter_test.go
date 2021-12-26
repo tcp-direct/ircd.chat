@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"git.tcp.direct/ircd/ircd-ergo/irc/flatip"
+	"git.tcp.direct/ircd/ircd/irc/flatip"
 )
 
 func easyParseIP(ipstr string) (result flatip.IP) {

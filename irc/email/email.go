@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"git.tcp.direct/ircd/ircd-ergo/irc/custime"
-	"git.tcp.direct/ircd/ircd-ergo/irc/smtp"
-	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd/irc/custime"
+	"git.tcp.direct/ircd/ircd/irc/smtp"
+	"git.tcp.direct/ircd/ircd/irc/utils"
 )
 
 var (

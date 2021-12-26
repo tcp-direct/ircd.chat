@@ -19,12 +19,12 @@ import (
 	"github.com/tidwall/buntdb"
 	"github.com/xdg-go/scram"
 
-	"git.tcp.direct/ircd/ircd-ergo/irc/connection_limits"
-	"git.tcp.direct/ircd/ircd-ergo/irc/email"
-	"git.tcp.direct/ircd/ircd-ergo/irc/migrations"
-	"git.tcp.direct/ircd/ircd-ergo/irc/modes"
-	"git.tcp.direct/ircd/ircd-ergo/irc/passwd"
-	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd/irc/connection_limits"
+	"git.tcp.direct/ircd/ircd/irc/email"
+	"git.tcp.direct/ircd/ircd/irc/migrations"
+	"git.tcp.direct/ircd/ircd/irc/modes"
+	"git.tcp.direct/ircd/ircd/irc/passwd"
+	"git.tcp.direct/ircd/ircd/irc/utils"
 )
 
 const (

@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd/irc/utils"
 )
 
 type ItemType uint
@@ -51,7 +51,7 @@ type Item struct {
 
 // HasMsgid tests whether a message has the message id `msgid`.
 func (item *Item) HasMsgid(msgid string) bool {
-	return item.Message.Msgid == msgid
+	return false
 }
 
 type Predicate func(item *Item) (matches bool)
@@ -142,13 +142,6 @@ func (list *Buffer) Add(item Item) {
 }
 
 func (list *Buffer) lookup(msgid string) (result Item, found bool) {
-	predicate := func(item *Item) bool {
-		return item.HasMsgid(msgid)
-	}
-	results := list.matchInternal(predicate, false, 1)
-	if len(results) != 0 {
-		return results[0], true
-	}
 	return
 }
 

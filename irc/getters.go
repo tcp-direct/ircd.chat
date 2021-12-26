@@ -9,10 +9,10 @@ import (
 	"time"
 	"unsafe"
 
-	"git.tcp.direct/ircd/ircd-ergo/irc/caps"
-	"git.tcp.direct/ircd/ircd-ergo/irc/languages"
-	"git.tcp.direct/ircd/ircd-ergo/irc/modes"
-	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd/irc/caps"
+	"git.tcp.direct/ircd/ircd/irc/languages"
+	"git.tcp.direct/ircd/ircd/irc/modes"
+	"git.tcp.direct/ircd/ircd/irc/utils"
 )
 
 func (server *Server) Config() (config *Config) {

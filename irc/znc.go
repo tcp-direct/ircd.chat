@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"git.tcp.direct/ircd/ircd-ergo/irc/history"
-	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd/irc/history"
+	"git.tcp.direct/ircd/ircd/irc/utils"
 )
 
 const (

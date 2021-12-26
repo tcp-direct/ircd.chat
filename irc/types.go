@@ -8,7 +8,7 @@ package irc
 import (
 	"time"
 
-	"git.tcp.direct/ircd/ircd-ergo/irc/modes"
+	"git.tcp.direct/ircd/ircd/irc/modes"
 )
 
 type empty struct{}

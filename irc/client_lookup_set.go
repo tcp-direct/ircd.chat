@@ -8,9 +8,9 @@ import (
 	"strings"
 	"sync"
 
-	"git.tcp.direct/ircd/ircd-ergo/irc/caps"
-	"git.tcp.direct/ircd/ircd-ergo/irc/modes"
-	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd/irc/caps"
+	"git.tcp.direct/ircd/ircd/irc/modes"
+	"git.tcp.direct/ircd/ircd/irc/utils"
 )
 
 // ClientManager keeps track of clients by nick, enforcing uniqueness of casefolded nicks

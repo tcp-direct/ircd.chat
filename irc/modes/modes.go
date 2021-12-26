@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd/irc/utils"
 )
 
 var (

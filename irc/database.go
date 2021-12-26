@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"git.tcp.direct/ircd/ircd-ergo/irc/modes"
-	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd/irc/modes"
+	"git.tcp.direct/ircd/ircd/irc/utils"
 
 	"github.com/tidwall/buntdb"
 )

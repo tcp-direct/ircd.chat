@@ -24,14 +24,14 @@ import (
 
 	"github.com/tidwall/buntdb"
 
-	"git.tcp.direct/ircd/ircd-ergo/irc/caps"
-	"git.tcp.direct/ircd/ircd-ergo/irc/connection_limits"
-	"git.tcp.direct/ircd/ircd-ergo/irc/flatip"
-	"git.tcp.direct/ircd/ircd-ergo/irc/history"
-	"git.tcp.direct/ircd/ircd-ergo/irc/logger"
-	"git.tcp.direct/ircd/ircd-ergo/irc/modes"
-	"git.tcp.direct/ircd/ircd-ergo/irc/sno"
-	"git.tcp.direct/ircd/ircd-ergo/irc/utils"
+	"git.tcp.direct/ircd/ircd/irc/caps"
+	"git.tcp.direct/ircd/ircd/irc/connection_limits"
+	"git.tcp.direct/ircd/ircd/irc/flatip"
+	"git.tcp.direct/ircd/ircd/irc/history"
+	"git.tcp.direct/ircd/ircd/irc/logger"
+	"git.tcp.direct/ircd/ircd/irc/modes"
+	"git.tcp.direct/ircd/ircd/irc/sno"
+	"git.tcp.direct/ircd/ircd/irc/utils"
 )
 
 const (
