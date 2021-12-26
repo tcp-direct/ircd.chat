@@ -6,12 +6,12 @@ package irc
 import "fmt"
 
 const (
-	// SemVer is the semantic version of Ergo.
-	SemVer = "0.4.3"
+	// SemVer is the semantic version of ircd.
+	SemVer = "0.4.4"
 )
 
 var (
-	// Ver is the full version of Ergo, used in responses to clients.
+	// Ver is the full version of ircd, used in responses to clients.
 	Ver = fmt.Sprintf("ircd-%s", SemVer)
 	// Commit is the full git hash, if available
 	Commit string
