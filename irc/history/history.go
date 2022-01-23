@@ -124,7 +124,7 @@ func (hist *Buffer) betweenHelper(start, end Selector, cutoff time.Time, pred Pr
 
 // returns all correspondents, in reverse time order
 func (hist *Buffer) allCorrespondents() (results []TargetListing) {
-	seen := make(utils.StringSet)
+	seen := utils.NewSetMap()
 
 	hist.RLock()
 	defer hist.RUnlock()
@@ -154,7 +154,6 @@ func (hist *Buffer) allCorrespondents() (results []TargetListing) {
 	return
 }
 
-
 // implements history.Sequence, emulating a single history buffer (for a channel,
 // a single user's DMs, or a DM conversation)
 type bufferSequence struct {
@@ -162,7 +161,6 @@ type bufferSequence struct {
 	pred   Predicate
 	cutoff time.Time
 }
-
 
 func (seq *bufferSequence) Between(start, end Selector, limit int) (results []Item, err error) {
 	return

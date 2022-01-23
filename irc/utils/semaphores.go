@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+type empty struct{}
+
 // Semaphore is a counting semaphore.
 // A semaphore of capacity 1 can be used as a trylock.
 type Semaphore (chan empty)

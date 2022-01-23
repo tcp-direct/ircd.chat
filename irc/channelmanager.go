@@ -26,17 +26,17 @@ type ChannelManager struct {
 	sync.RWMutex // tier 2
 	// chans is the main data structure, mapping casefolded name -> *Channel
 	chans               map[string]*channelManagerEntry
-	chansSkeletons      utils.StringSet // skeletons of *unregistered* chans
-	registeredChannels  utils.StringSet // casefolds of registered chans
-	registeredSkeletons utils.StringSet // skeletons of registered chans
-	purgedChannels      utils.StringSet // casefolds of purged chans
+	chansSkeletons      utils.SetMap // skeletons of *unregistered* chans
+	registeredChannels  utils.SetMap // casefolds of registered chans
+	registeredSkeletons utils.SetMap // skeletons of registered chans
+	purgedChannels      utils.SetMap // casefolds of purged chans
 	server              *Server
 }
 
 // Initialize NewChannelManager returns a new ChannelManager.
 func (cm *ChannelManager) Initialize(server *Server) {
 	cm.chans = make(map[string]*channelManagerEntry)
-	cm.chansSkeletons = make(utils.StringSet)
+	cm.chansSkeletons = utils.NewSetMap()
 	cm.server = server
 
 	// purging should work even if registration is disabled
@@ -66,8 +66,8 @@ func (cm *ChannelManager) loadRegisteredChannels(config *Config) {
 	cm.Lock()
 	defer cm.Unlock()
 
-	cm.registeredChannels = make(utils.StringSet, len(rawNames))
-	cm.registeredSkeletons = make(utils.StringSet, len(rawNames))
+	cm.registeredChannels = utils.NewSetMapWithCap(len(rawNames))
+	cm.registeredSkeletons = utils.NewSetMapWithCap(len(rawNames))
 	for _, name := range rawNames {
 		cfname, err := CasefoldChannel(name)
 		if err == nil {
@@ -189,7 +189,7 @@ func (cm *ChannelManager) maybeCleanupInternal(cfname string, entry *channelMana
 	if entry.pendingJoins == 0 && entry.channel.IsClean() {
 		delete(cm.chans, cfname)
 		if entry.skeleton != "" {
-			delete(cm.chansSkeletons, entry.skeleton)
+			delete(cm.chansSkeletons.Self(), entry.skeleton)
 		}
 	}
 }
@@ -223,7 +223,7 @@ func (cm *ChannelManager) Cleanup(channel *Channel) {
 
 func (cm *ChannelManager) SetRegistered(channelName string, account string) (err error) {
 	if cm.server.Defcon() <= 4 {
-//		return errFeatureDisabled
+		//		return errFeatureDisabled
 	}
 
 	var channel *Channel
@@ -254,7 +254,7 @@ func (cm *ChannelManager) SetRegistered(channelName string, account string) (err
 	}
 	// transfer the skeleton from chansSkeletons to registeredSkeletons
 	skeleton := entry.skeleton
-	delete(cm.chansSkeletons, skeleton)
+	delete(cm.chansSkeletons.Self(), skeleton)
 	entry.skeleton = ""
 	cm.chans[cfname] = entry
 	cm.registeredChannels.Add(cfname)
@@ -287,10 +287,10 @@ func (cm *ChannelManager) SetUnregistered(channelName string, account string) (e
 	entry := cm.chans[cfname]
 	if entry != nil {
 		entry.channel.SetUnregistered(account)
-		delete(cm.registeredChannels, cfname)
+		delete(cm.registeredChannels.Self(), cfname)
 		// transfer the skeleton from registeredSkeletons to chansSkeletons
 		if skel, err := Skeleton(entry.channel.Name()); err == nil {
-			delete(cm.registeredSkeletons, skel)
+			delete(cm.registeredSkeletons.Self(), skel)
 			cm.chansSkeletons.Add(skel)
 			entry.skeleton = skel
 			cm.chans[cfname] = entry
@@ -365,12 +365,12 @@ func (cm *ChannelManager) Rename(name string, newName string) (err error) {
 	}
 	cm.chans[newCfname] = entry
 	if registered {
-		delete(cm.registeredChannels, oldCfname)
+		delete(cm.registeredChannels.Self(), oldCfname)
 		cm.registeredChannels.Add(newCfname)
-		delete(cm.registeredSkeletons, oldSkeleton)
+		delete(cm.registeredSkeletons.Self(), oldSkeleton)
 		cm.registeredSkeletons.Add(newSkeleton)
 	} else {
-		delete(cm.chansSkeletons, oldSkeleton)
+		delete(cm.chansSkeletons.Self(), oldSkeleton)
 		cm.chansSkeletons.Add(newSkeleton)
 	}
 	entry.channel.Rename(newName, newCfname)
@@ -414,9 +414,9 @@ func (cm *ChannelManager) Purge(chname string, record ChannelPurgeRecord) (err e
 	if entry != nil {
 		delete(cm.chans, chname)
 		if entry.channel.Founder() != "" {
-			delete(cm.registeredSkeletons, skel)
+			delete(cm.registeredSkeletons.Self(), skel)
 		} else {
-			delete(cm.chansSkeletons, skel)
+			delete(cm.chansSkeletons.Self(), skel)
 		}
 	}
 	cm.Unlock()
@@ -450,7 +450,7 @@ func (cm *ChannelManager) Unpurge(chname string) (err error) {
 
 	cm.Lock()
 	found := cm.purgedChannels.Has(chname)
-	delete(cm.purgedChannels, chname)
+	delete(cm.purgedChannels.Self(), chname)
 	cm.Unlock()
 
 	cm.server.channelRegistry.UnpurgeChannel(chname)
@@ -462,8 +462,8 @@ func (cm *ChannelManager) Unpurge(chname string) (err error) {
 
 func (cm *ChannelManager) ListPurged() (result []string) {
 	cm.RLock()
-	result = make([]string, 0, len(cm.purgedChannels))
-	for c := range cm.purgedChannels {
+	result = make([]string, 0, len(cm.purgedChannels.Self()))
+	for c := range cm.purgedChannels.Self() {
 		result = append(result, c)
 	}
 	cm.RUnlock()

@@ -25,8 +25,8 @@ var (
 		"MemoServ", "BotServ", "OperServ",
 	}
 
-	restrictedCasefoldedNicks = make(utils.StringSet)
-	restrictedSkeletons       = make(utils.StringSet)
+	restrictedCasefoldedNicks = utils.NewSetMap()
+	restrictedSkeletons       = utils.NewSetMap()
 )
 
 func performNickChange(server *Server, client *Client, target *Client, session *Session, nickname string, rb *ResponseBuffer) error {

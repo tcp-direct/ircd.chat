@@ -11,14 +11,14 @@ import (
 
 func TestGenerateBatchID(t *testing.T) {
 	var session Session
-	s := make(utils.StringSet)
+	s := utils.NewSetMap()
 
 	count := 100000
 	for i := 0; i < count; i++ {
 		s.Add(session.generateBatchID())
 	}
 
-	if len(s) != count {
+	if len(s.Self()) != count {
 		t.Error("duplicate batch ID detected")
 	}
 }

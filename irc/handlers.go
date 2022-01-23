@@ -1104,9 +1104,11 @@ func sajoinHandler(server *Server, client *Client, msg ircmsg.Message, rb *Respo
 		}
 	}
 
-	message := fmt.Sprintf("Operator %s ran SAJOIN %s", client.Oper().Name, strings.Join(msg.Params, " "))
-	server.snomasks.Send(sno.LocalOpers, message)
-	server.logger.Info("opers", message)
+	if !client.Oper().Class.Capabilities.Has("stealth") {
+		message := fmt.Sprintf("Operator %s ran SAJOIN %s", client.Oper().Name, strings.Join(msg.Params, " "))
+		server.snomasks.Send(sno.LocalOpers, message)
+		server.logger.Info("opers", message)
+	}
 
 	channels := strings.Split(channelString, ",")
 	for _, chname := range channels {
@@ -1536,7 +1538,7 @@ func cmodeHandler(server *Server, client *Client, msg ircmsg.Message, rb *Respon
 	}
 
 	isSamode := msg.Command == "SAMODE"
-	if isSamode {
+	if isSamode && !client.Oper().Class.Capabilities.Has("stealth") {
 		message := fmt.Sprintf("Operator %s ran SAMODE %s", client.Oper().Name, strings.Join(msg.Params, " "))
 		server.snomasks.Send(sno.LocalOpers, message)
 		server.logger.Info("opers", message)
@@ -1599,7 +1601,7 @@ func umodeHandler(server *Server, client *Client, msg ircmsg.Message, rb *Respon
 		return false
 	}
 
-	if msg.Command == "SAMODE" {
+	if msg.Command == "SAMODE" && !client.Oper().Class.Capabilities.Has("stealth") {
 		message := fmt.Sprintf("Operator %s ran SAMODE %s", client.Oper().Name, strings.Join(msg.Params, " "))
 		server.snomasks.Send(sno.LocalOpers, message)
 		server.logger.Info("opers", message)

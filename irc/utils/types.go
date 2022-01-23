@@ -1,17 +1,48 @@
-// Copyright (c) 2020 Shivaram Lingamneni
-// released under the MIT license
-
 package utils
 
-type empty struct{}
+import "sync"
 
-type StringSet map[string]empty
+type SetMap struct {
+	m  map[string]bool
+	mu *sync.RWMutex
+}
 
-func (s StringSet) Has(str string) bool {
-	_, ok := s[str]
+func NewSetMap() SetMap {
+	return SetMap{
+		m:  make(map[string]bool),
+		mu: &sync.RWMutex{},
+	}
+}
+
+
+func NewSetMapWithCap(capacity int) SetMap {
+	return SetMap{
+		m:  make(map[string]bool, capacity),
+		mu: &sync.RWMutex{},
+	}
+}
+
+func (s SetMap) Self() map[string]bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.m
+}
+
+func (s SetMap) Has(str string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	_, ok := s.m[str]
 	return ok
 }
 
-func (s StringSet) Add(str string) {
-	s[str] = empty{}
+func (s SetMap) Add(str string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.m[str] = true
+}
+
+func (s SetMap) Subtract(str string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.m[str] = true
 }
