@@ -163,8 +163,7 @@ spam or other hostile activity. It has five levels, which are cumulative
 (i.e., level 3 includes all restrictions from level 4 and so on):
 
 5: Normal fuckhole operation
-4: No new accounts or channel registrations; if Tor is enabled, no new
-   unauthenticated connections from Tor
+4: No new accounts; if Tor is enabled, no new unauthenticated connections from Tor
 3: All users are +R; no changes to vhosts
 2: No new unauthenticated connections; all channels are +R
 1: HOLY SHIT PANIC (No new connections except from localhost or other trusted IPs)`,

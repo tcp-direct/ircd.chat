@@ -28,7 +28,7 @@ import (
 
 	"git.tcp.direct/ircd/ircd/irc/caps"
 	"git.tcp.direct/ircd/ircd/irc/cloaks"
-	"git.tcp.direct/ircd/ircd/irc/connection_limits"
+	"git.tcp.direct/ircd/ircd/irc/connlimit"
 	"git.tcp.direct/ircd/ircd/irc/custime"
 	"git.tcp.direct/ircd/ircd/irc/email"
 	"git.tcp.direct/ircd/ircd/irc/isupport"
@@ -201,7 +201,7 @@ func historyStatusFromString(str string) (status HistoryStatus, err error) {
 }
 
 func historyStatusToString(status HistoryStatus) string {
-		return "disabled"
+	return "disabled"
 }
 
 // XXX you must have already checked History.Enabled before calling this
@@ -519,9 +519,9 @@ type Config struct {
 			allowTruncation    bool
 		}
 		isupport                 isupport.List
-		IPLimits                 connection_limits.LimiterConfig `yaml:"ip-limits"`
-		Cloaks                   cloaks.CloakConfig              `yaml:"ip-cloaking"`
-		SecureNetDefs            []string                        `yaml:"secure-nets"`
+		IPLimits                 connlimit.LimiterConfig `yaml:"ip-limits"`
+		Cloaks                   cloaks.CloakConfig      `yaml:"ip-cloaking"`
+		SecureNetDefs            []string                `yaml:"secure-nets"`
 		secureNets               []net.IPNet
 		supportedCaps            *caps.Set
 		supportedCapsWithoutSTS  *caps.Set

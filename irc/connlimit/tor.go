@@ -1,7 +1,7 @@
 // Copyright (c) 2019 Shivaram Lingamneni <slingamn@cs.stanford.edu>
 // released under the MIT license
 
-package connection_limits
+package connlimit
 
 import (
 	"sync"

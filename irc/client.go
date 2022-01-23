@@ -23,7 +23,7 @@ import (
 	"github.com/xdg-go/scram"
 
 	"git.tcp.direct/ircd/ircd/irc/caps"
-	"git.tcp.direct/ircd/ircd/irc/connection_limits"
+	"git.tcp.direct/ircd/ircd/irc/connlimit"
 	"git.tcp.direct/ircd/ircd/irc/flatip"
 	"git.tcp.direct/ircd/ircd/irc/history"
 	"git.tcp.direct/ircd/ircd/irc/modes"
@@ -82,7 +82,7 @@ type Client struct {
 	lastActive         atomic.Value         // last time they sent a command that wasn't PONG or similar
 	lastSeen           map[string]time.Time // maps device ID (including "") to time of last received command
 	lastSeenLastWrite  atomic.Value         // last time `lastSeen` was written to the datastore
-	loginThrottle      connection_limits.GenericThrottle
+	loginThrottle      connlimit.GenericThrottle
 	nextSessionID      int64 // Incremented when a new session is established
 	nick               string
 	nickCasefolded     string
@@ -326,7 +326,7 @@ func (server *Server) RunClient(conn IRCConn) {
 		ctime:      now,
 		isSTSOnly:  wConn.Config.STSOnly,
 		languages:  server.Languages().Default(),
-		loginThrottle: connection_limits.GenericThrottle{
+		loginThrottle: connlimit.GenericThrottle{
 			Duration: config.Accounts.LoginThrottling.Duration,
 			Limit:    config.Accounts.LoginThrottling.MaxAttempts,
 		},
@@ -440,8 +440,6 @@ func (server *Server) AddAlwaysOnClient(account ClientAccount, channelToStatus m
 
 	server.accounts.Login(client, account)
 
-	client.resizeHistory(config)
-
 	_, err, _ := server.clients.SetNick(client, nil, account.Name, false)
 	if err != nil {
 		server.logger.Error("internal", "could not establish always-on client", account.Name, err.Error())
@@ -466,15 +464,6 @@ func (server *Server) AddAlwaysOnClient(account ClientAccount, channelToStatus m
 
 	if persistenceEnabled(config.Accounts.Multiclient.AutoAway, client.accountSettings.AutoAway) {
 		client.setAutoAwayNoMutex(config)
-	}
-}
-
-func (client *Client) resizeHistory(config *Config) {
-	status, _ := client.historyStatus(config)
-	if status == HistoryEphemeral {
-		client.history.Resize(config.History.ClientLength, time.Duration(config.History.AutoresizeWindow))
-	} else {
-		client.history.Resize(0, 0)
 	}
 }
 
@@ -1621,64 +1610,6 @@ func (client *Client) addHistoryItem(target *Client, item history.Item, details,
 	}
 
 	return nil
-}
-
-func (client *Client) listTargets(start, end history.Selector, limit int) (results []history.TargetListing, err error) {
-	var base, extras []history.TargetListing
-	var chcfnames []string
-	for _, channel := range client.Channels() {
-		_, seq, err := client.server.GetHistorySequence(channel, client, "")
-		if seq == nil || err != nil {
-			continue
-		}
-		if seq.Ephemeral() {
-			items, err := seq.Between(history.Selector{}, history.Selector{}, 1)
-			if err == nil && len(items) != 0 {
-				extras = append(extras, history.TargetListing{
-					Time:   items[0].Message.Time,
-					CfName: channel.NameCasefolded(),
-				})
-			}
-		} else {
-			chcfnames = append(chcfnames, channel.NameCasefolded())
-		}
-	}
-
-	_, cSeq, err := client.server.GetHistorySequence(nil, client, "")
-	if err == nil && cSeq != nil {
-		correspondents, err := cSeq.ListCorrespondents(start, end, limit)
-		if err == nil {
-			base = correspondents
-		}
-	}
-
-	results = history.MergeTargets(base, extras, start.Time, end.Time, limit)
-	return results, nil
-}
-
-// latest PRIVMSG from all DM targets
-func (client *Client) privmsgsBetween(startTime, endTime time.Time, targetLimit, messageLimit int) (results []history.Item, err error) {
-	start := history.Selector{Time: startTime}
-	end := history.Selector{Time: endTime}
-	targets, err := client.listTargets(start, end, targetLimit)
-	if err != nil {
-		return
-	}
-	for _, target := range targets {
-		if strings.HasPrefix(target.CfName, "#") {
-			continue
-		}
-		_, seq, err := client.server.GetHistorySequence(nil, client, target.CfName)
-		if err == nil && seq != nil {
-			items, err := seq.Between(start, end, messageLimit)
-			if err == nil {
-				results = append(results, items...)
-			} else {
-				client.server.logger.Error("internal", "error querying privmsg history", client.Nick(), target.CfName, err.Error())
-			}
-		}
-	}
-	return
 }
 
 func (client *Client) handleRegisterTimeout() {

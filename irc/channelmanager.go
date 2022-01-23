@@ -223,7 +223,7 @@ func (cm *ChannelManager) Cleanup(channel *Channel) {
 
 func (cm *ChannelManager) SetRegistered(channelName string, account string) (err error) {
 	if cm.server.Defcon() <= 4 {
-		return errFeatureDisabled
+//		return errFeatureDisabled
 	}
 
 	var channel *Channel

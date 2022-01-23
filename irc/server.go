@@ -25,9 +25,8 @@ import (
 	"github.com/tidwall/buntdb"
 
 	"git.tcp.direct/ircd/ircd/irc/caps"
-	"git.tcp.direct/ircd/ircd/irc/connection_limits"
+	"git.tcp.direct/ircd/ircd/irc/connlimit"
 	"git.tcp.direct/ircd/ircd/irc/flatip"
-	"git.tcp.direct/ircd/ircd/irc/history"
 	"git.tcp.direct/ircd/ircd/irc/logger"
 	"git.tcp.direct/ircd/ircd/irc/modes"
 	"git.tcp.direct/ircd/ircd/irc/sno"
@@ -67,7 +66,7 @@ type Server struct {
 	clients           ClientManager
 	config            unsafe.Pointer
 	configFilename    string
-	connectionLimiter connection_limits.Limiter
+	connectionLimiter connlimit.Limiter
 	ctime             time.Time
 	dlines            *DLineManager
 	helpIndexManager  HelpIndexManager
@@ -83,7 +82,7 @@ type Server struct {
 	exitSignals       chan os.Signal
 	snomasks          SnoManager
 	store             *buntdb.DB
-	torLimiter        connection_limits.TorLimiter
+	torLimiter        connlimit.TorLimiter
 	whoWas            WhoWasList
 	stats             Stats
 	semaphores        ServerSemaphores
@@ -185,11 +184,11 @@ func (server *Server) checkBans(config *Config, ipaddr net.IP, checkScripts bool
 
 	// check connection limits
 	err := server.connectionLimiter.AddClient(flat)
-	if err == connection_limits.ErrLimitExceeded {
+	if err == connlimit.ErrLimitExceeded {
 		// too many connections from one client, tell the client and close the connection
 		server.logger.Info("connect-ip", "Client rejected for connection limit", ipaddr.String())
 		return true, false, "Too many clients from your network"
-	} else if err == connection_limits.ErrThrottleExceeded {
+	} else if err == connlimit.ErrThrottleExceeded {
 		server.logger.Info("connect-ip", "Client exceeded connection throttle", ipaddr.String())
 		return true, false, throttleMessage
 	} else if err != nil {
@@ -231,9 +230,9 @@ func (server *Server) checkBans(config *Config, ipaddr net.IP, checkScripts bool
 
 func (server *Server) checkTorLimits() (banned bool, message string) {
 	switch server.torLimiter.AddClient() {
-	case connection_limits.ErrLimitExceeded:
+	case connlimit.ErrLimitExceeded:
 		return true, "Too many clients from the Tor network"
-	case connection_limits.ErrThrottleExceeded:
+	case connlimit.ErrThrottleExceeded:
 		return true, "Exceeded connection throttle for the Tor network"
 	default:
 		return false, ""
@@ -841,18 +840,6 @@ func (server *Server) setupListeners(config *Config) (err error) {
 	}
 
 	return
-}
-
-// GetHistorySequence Gets the abstract sequence from which we're going to query history;
-// we may already know the channel we're querying, or we may have
-// to look it up via a string query. This function is responsible for
-// privilege checking.
-// XXX: call this with providedChannel==nil and query=="" to get a sequence
-// suitable for ListCorrespondents (i.e., this function is still used to
-// decide whether the ringbuf or mysql is authoritative about the client's
-// message history).
-func (server *Server) GetHistorySequence(providedChannel *Channel, client *Client, query string) (channel *Channel, sequence history.Sequence, err error) {
-	return providedChannel, nil, nil
 }
 
 func (server *Server) ForgetHistory(accountName string) {

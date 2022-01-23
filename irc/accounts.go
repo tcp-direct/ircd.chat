@@ -19,7 +19,7 @@ import (
 	"github.com/tidwall/buntdb"
 	"github.com/xdg-go/scram"
 
-	"git.tcp.direct/ircd/ircd/irc/connection_limits"
+	"git.tcp.direct/ircd/ircd/irc/connlimit"
 	"git.tcp.direct/ircd/ircd/irc/email"
 	"git.tcp.direct/ircd/ircd/irc/migrations"
 	"git.tcp.direct/ircd/ircd/irc/modes"
@@ -65,7 +65,7 @@ type AccountManager struct {
 	nickToAccount     map[string]string
 	skeletonToAccount map[string]string
 	accountToMethod   map[string]NickEnforcementMethod
-	registerThrottle  connection_limits.GenericThrottle
+	registerThrottle  connlimit.GenericThrottle
 }
 
 func (am *AccountManager) Initialize(server *Server) {
@@ -85,7 +85,7 @@ func (am *AccountManager) resetRegisterThrottle(config *Config) {
 	am.Lock()
 	defer am.Unlock()
 
-	am.registerThrottle = connection_limits.GenericThrottle{
+	am.registerThrottle = connlimit.GenericThrottle{
 		Duration: config.Accounts.Registration.Throttling.Duration,
 		Limit:    config.Accounts.Registration.Throttling.MaxAttempts,
 	}

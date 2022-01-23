@@ -1,7 +1,7 @@
 // Copyright (c) 2018 Shivaram Lingamneni
 // released under the MIT license
 
-package connection_limits
+package connlimit
 
 import (
 	"crypto/md5"

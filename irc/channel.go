@@ -69,10 +69,8 @@ func NewChannel(s *Server, name, casefoldedName string, registered bool) *Channe
 	}
 
 	channel.initializeLists()
-	channel.history.Initialize(0, 0)
 
 	if !registered {
-		channel.resizeHistory(config)
 		for _, mode := range config.Channels.defaultModes {
 			channel.flags.SetMode(mode, true)
 		}
@@ -110,18 +108,9 @@ func (channel *Channel) IsLoaded() bool {
 	return channel.ensureLoaded.Done()
 }
 
-func (channel *Channel) resizeHistory(config *Config) {
-	status, _, _ := channel.historyStatus(config)
-	if status == HistoryEphemeral {
-		channel.history.Resize(config.History.ChannelLength, time.Duration(config.History.AutoresizeWindow))
-	} else {
-		channel.history.Resize(0, 0)
-	}
-}
 
 // read in channel state that was persisted in the DB
 func (channel *Channel) applyRegInfo(chanReg RegisteredChannel) {
-	defer channel.resizeHistory(channel.server.Config())
 
 	channel.stateMutex.Lock()
 	defer channel.stateMutex.Unlock()
@@ -739,12 +728,7 @@ func (channel *Channel) Join(client *Client, key string, isSajoin bool, rb *Resp
 		// 0. SAJOIN always succeeds
 		isSajoin,
 		// 1. the founder can always join (even if they disabled auto +q on join)
-		founder == details.account && details.account != "",
-		// 2. anyone who automatically receives halfop or higher can always join
-		persistentMode != 0 && persistentMode != modes.Voice,
-		// 3. people invited with INVITE can join
-		client.CheckInvited(chcfname, createdAt):
-
+		founder == details.account && details.account != "":
 		break
 
 	// If the channel has limited capacity and they are over said capacity, don't join.

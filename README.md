@@ -2,6 +2,12 @@
 
 fuck ergo all my homies hate ergo
 
+### Changes:
+ - [x] History gutted
+ - [x] MySQL erradicated
+ - [x] Whitelabeled
+ - [ ] Always-on gutted (do we want to do this?)
+ - [ ] Add new shit
 ## Bloat Comparison
 
 ### Ergo
