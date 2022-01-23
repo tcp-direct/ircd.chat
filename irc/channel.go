@@ -730,6 +730,19 @@ func (channel *Channel) Join(client *Client, key string, isSajoin bool, rb *Resp
 		founder == details.account && details.account != "":
 		break
 
+	// If the channel has banned the joinee and there is no ban exception, don't join.
+	case channel.lists[modes.BanMask].Match(details.nickMaskCasefolded):
+		if !channel.lists[modes.ExceptMask].Match(details.nickMaskCasefolded) {
+			// do not forward people who are banned:
+			return errBanned, ""
+		}
+
+	// If the channel is set to registered users only and there is no invite exception for the joinee, don't join.
+	case details.account == "" &&
+		(channel.flags.HasMode(modes.RegisteredOnly) || channel.server.Defcon() <= 2) &&
+		!channel.lists[modes.InviteMask].Match(details.nickMaskCasefolded):
+		return errRegisteredOnly, forward
+
 	// If the channel has limited capacity and they are over said capacity, don't join.
 	case limit != 0 && chcount >= limit:
 		return errLimitExceeded, forward
@@ -741,7 +754,7 @@ func (channel *Channel) Join(client *Client, key string, isSajoin bool, rb *Resp
 	// If the channel is invite only and they joinee does not have an invite exception, don't join.
 	case channel.flags.HasMode(modes.InviteOnly):
 		// anyone who automatically receives halfop or higher can join despite invite only mode.
-		if persistentMode != 0 && persistentMode != modes.Voice {
+		if persistentMode == modes.Halfop || persistentMode == modes.Operator {
 			break
 		}
 		// people invited with INVITE can join.
@@ -752,23 +765,10 @@ func (channel *Channel) Join(client *Client, key string, isSajoin bool, rb *Resp
 		if channel.lists[modes.InviteMask].Match(details.nickMaskCasefolded) {
 			break
 		}
-		return errInviteOnly, forward
-
-	// If the channel has banned the joinee and there is no ban exception, don't join.
-	case channel.lists[modes.BanMask].Match(details.nickMaskCasefolded):
-		if channel.lists[modes.ExceptMask].Match(details.nickMaskCasefolded) {
-			// do not forward people who are banned:
-			return errBanned, ""
-		}
-
-	// If the channel is set to registered users only and there is no invite exception for the joinee, don't join.
-	case details.account == "" &&
-		(channel.flags.HasMode(modes.RegisteredOnly) || channel.server.Defcon() <= 2) &&
-		!channel.lists[modes.InviteMask].Match(details.nickMaskCasefolded):
-		return errRegisteredOnly, forward
+		return errInviteOnly, ""
 
 	default:
-		//
+
 	}
 
 	if joinErr := client.addChannel(channel, rb == nil); joinErr != nil {
