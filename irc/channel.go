@@ -108,7 +108,6 @@ func (channel *Channel) IsLoaded() bool {
 	return channel.ensureLoaded.Done()
 }
 
-
 // read in channel state that was persisted in the DB
 func (channel *Channel) applyRegInfo(chanReg RegisteredChannel) {
 
@@ -741,6 +740,15 @@ func (channel *Channel) Join(client *Client, key string, isSajoin bool, rb *Resp
 
 	// If the channel is invite only and they joinee does not have an invite exception, don't join.
 	case channel.flags.HasMode(modes.InviteOnly):
+		// anyone who automatically receives halfop or higher can join despite invite only mode.
+		if persistentMode != 0 && persistentMode != modes.Voice {
+			break
+		}
+		// people invited with INVITE can join.
+		if client.CheckInvited(chcfname, createdAt) {
+			break
+		}
+		// people with invite exceptions can join.
 		if channel.lists[modes.InviteMask].Match(details.nickMaskCasefolded) {
 			break
 		}
@@ -767,7 +775,7 @@ func (channel *Channel) Join(client *Client, key string, isSajoin bool, rb *Resp
 		return joinErr, ""
 	}
 
-	client.server.logger.Debug("channels", fmt.Sprintf("%s joined channel %s", details.nick, chname))
+	client.server.logger.Debug("channels", details.nick+" joined channel "+chname)
 
 	givenMode := func() (givenMode modes.Mode) {
 		channel.joinPartMutex.Lock()
@@ -808,7 +816,6 @@ func (channel *Channel) Join(client *Client, key string, isSajoin bool, rb *Resp
 			IsBot:       isBot,
 		}
 		histItem.Params[0] = details.realname
-		channel.AddHistoryItem(histItem, details.account)
 	}
 
 	if rb == nil {
