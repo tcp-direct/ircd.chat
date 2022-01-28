@@ -12,8 +12,6 @@ fuck ergo all my homies hate ergo
 
 ### Ergo
 ```
-Examining 1084 file(s)
-
                           Ohloh Line Count Summary
 
 Language          Files       Code    Comment  Comment %      Blank      Total
@@ -33,17 +31,16 @@ Total               756     308372      36165      10.5%      26921     371458
 
 ### ircd.chat
 ```
-Examining 165 file(s)
-
                           Ohloh Line Count Summary
 
 Language          Files       Code    Comment  Comment %      Blank      Total
 ----------------  -----  ---------  ---------  ---------  ---------  ---------
-golang              123      25449       2793       9.9%       3988      32230
-python                3        503         56      10.0%         48        607
+golang              122      24894       2715       9.8%       3894      31503
+python                1        209         18       7.9%         16        243
 shell                 3         66         13      16.5%         18         97
 ampl                  1         38          0       0.0%          6         44
 make                  1         36          0       0.0%         11         47
 ----------------  -----  ---------  ---------  ---------  ---------  ---------
-Total               131      26092       2862       9.9%       4071      33025
+Total               128      25243       2746       9.8%       3945      31934
+
 ```
