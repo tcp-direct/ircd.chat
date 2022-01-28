@@ -452,8 +452,12 @@ func (server *Server) AddAlwaysOnClient(account ClientAccount, channelToStatus m
 	client.registered = true
 
 	for chname, status := range channelToStatus {
-		// XXX we're using isSajoin=true, to make these joins succeed even without channel key
-		// this is *probably* ok as long as the persisted memberships are accurate
+		/*
+		XXX we're using isSajoin=true, to make these joins succeed even without channel key
+		this is *probably* ok as long as the persisted memberships are accurate
+
+		fuck that, no we're not. the above can be disregarded as this has been reversed.
+		*/
 		server.channels.Join(client, chname, "", false, nil)
 		if channel := server.channels.Get(chname); channel != nil {
 			channel.setMemberStatus(client, status)
