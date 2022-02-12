@@ -421,15 +421,6 @@ func displaySetting(service *ircService, settingName string, settings AccountSet
 				service.Notice(rb, client.t("Multiclient functionality is currently enabled for your account"))
 			}
 		}
-	case "always-on":
-		stored := settings.AlwaysOn
-		actual := persistenceEnabled(config.Accounts.Multiclient.AlwaysOn, stored)
-		service.Notice(rb, fmt.Sprintf(client.t("Your stored always-on setting is: %s"), userPersistentStatusToString(stored)))
-		if actual {
-			service.Notice(rb, client.t("Given current server settings, your client is always-on"))
-		} else {
-			service.Notice(rb, client.t("Given current server settings, your client is not always-on"))
-		}
 	case "auto-away":
 		stored := settings.AutoAway
 		alwaysOn := persistenceEnabled(config.Accounts.Multiclient.AlwaysOn, settings.AlwaysOn)
@@ -500,22 +491,6 @@ func nsSetHandler(service *ircService, server *Server, client *Client, command s
 		if err == nil {
 			finalSettings.NickEnforcement = method // success
 		}
-	case "autoreplay-lines":
-		var newValue *int
-		if strings.ToLower(params[1]) != "default" {
-			val, err_ := strconv.Atoi(params[1])
-			if err_ != nil || val < 0 {
-				err = errInvalidParams
-				break
-			}
-			newValue = new(int)
-			*newValue = val
-		}
-		munger = func(in AccountSettings) (out AccountSettings, err error) {
-			out = in
-			out.AutoreplayLines = newValue
-			return
-		}
 	case "multiclient":
 		var newValue MulticlientAllowedSetting
 		if strings.ToLower(params[1]) == "default" {
@@ -543,39 +518,6 @@ func nsSetHandler(service *ircService, server *Server, client *Client, command s
 			munger = func(in AccountSettings) (out AccountSettings, err error) {
 				out = in
 				out.ReplayJoins = newValue
-				return
-			}
-		}
-	case "always-on":
-		// #821: it's problematic to alter the value of always-on if you're not
-		// the (actual or potential) always-on client yourself. make an exception
-		// for `saset` to give operators an escape hatch (any consistency problems
-		// can probably be fixed by restarting the server):
-		if command != "saset" {
-			details := client.Details()
-			if details.nick != details.accountName {
-				err = errNickAccountMismatch
-			}
-		}
-		if err == nil {
-			var newValue PersistentStatus
-			newValue, err = persistentStatusFromString(params[1])
-			// "opt-in" and "opt-out" don't make sense as user preferences
-			if err == nil && newValue != PersistentOptIn && newValue != PersistentOptOut {
-				munger = func(in AccountSettings) (out AccountSettings, err error) {
-					out = in
-					out.AlwaysOn = newValue
-					return
-				}
-			}
-		}
-	case "autoreplay-missed":
-		var newValue bool
-		newValue, err = utils.StringToBool(params[1])
-		if err == nil {
-			munger = func(in AccountSettings) (out AccountSettings, err error) {
-				out = in
-				out.AutoreplayMissed = newValue
 				return
 			}
 		}
