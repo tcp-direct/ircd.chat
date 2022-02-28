@@ -1,0 +1,56 @@
+# .goreleaser.yml
+# Build customization
+project_name: ergo
+builds:
+  - main: ergo.go
+    binary: ergo
+    goos:
+      - freebsd
+      - windows
+      - darwin
+      - linux
+    goarch:
+      - "386"
+      - amd64
+      - arm
+      - arm64
+    goarm:
+      - 6
+      - 7
+    ignore:
+      - goos: windows
+        goarch: arm
+      - goos: darwin
+        goarch: arm
+      - goos: darwin
+        goarch: 386
+      - goos: freebsd
+        goarch: arm
+      - goos: freebsd
+        goarch: arm64
+    flags:
+      - -trimpath
+
+archives:
+  - name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+    format: tar.gz
+    replacements:
+      amd64: x86_64
+      darwin: macos
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README
+      - CHANGELOG.md
+      - ergo.motd
+      - default.yaml
+      - traditional.yaml
+      - docs/MANUAL.md
+      - docs/USERGUIDE.md
+      - languages/*.yaml
+      - languages/*.json
+      - languages/*.md
+    wrap_in_directory: true
+checksum:
+  name_template: "{{ .ProjectName }}-{{ .Version }}-checksums.txt"

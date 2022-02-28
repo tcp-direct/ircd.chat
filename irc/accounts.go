@@ -194,8 +194,8 @@ func (am *AccountManager) buildNickToAccountIndex(config *Config) {
 
 	if config.Accounts.NickReservation.Method == NickEnforcementStrict {
 		unregisteredPrefix := fmt.Sprintf(keyAccountUnregistered, "")
-		err := am.server.store.View(func(tx *buntdb.Tx) error {
-			err = tx.AscendGreaterOrEqual("", unregisteredPrefix, func(key, value string) bool {
+		am.server.store.View(func(tx *buntdb.Tx) error {
+			tx.AscendGreaterOrEqual("", unregisteredPrefix, func(key, value string) bool {
 				if !strings.HasPrefix(key, unregisteredPrefix) {
 					return false
 				}
@@ -206,11 +206,8 @@ func (am *AccountManager) buildNickToAccountIndex(config *Config) {
 				skeletonToAccount[skeleton] = account
 				return true
 			})
-			return err
+			return nil
 		})
-		if err != nil {
-			am.server.logger.Error("internal", "buildNickToAccountIndex buntdb transaction error during AscendGreaterOrEqual", err.Error())
-		}
 	}
 
 	if err != nil {
@@ -406,10 +403,7 @@ func (am *AccountManager) Register(client *Client, account string, callbackNames
 	if err != nil {
 		return err
 	}
-	err = creds.AddCertfp(certfp)
-	if err != nil {
-		return err
-	}
+	creds.AddCertfp(certfp)
 	credStr, err := creds.Serialize()
 	if err != nil {
 		return err
@@ -477,7 +471,7 @@ func (am *AccountManager) Register(client *Client, account string, callbackNames
 
 	code, err := am.dispatchCallback(client, account, callbackNamespace, callbackValue)
 	if err != nil {
-		_ = am.Unregister(casefoldedAccount, true)
+		am.Unregister(casefoldedAccount, true)
 		return &registrationCallbackError{underlying: err}
 	} else {
 		am.server.logger.Info("accounts",
@@ -543,11 +537,11 @@ func (am *AccountManager) setPassword(accountName string, password string, hasPr
 
 	credKey := fmt.Sprintf(keyAccountCredentials, cfAccount)
 	var credStr string
-	err = am.server.store.View(func(tx *buntdb.Tx) error {
+	am.server.store.View(func(tx *buntdb.Tx) error {
 		// no need to check verification status here or below;
 		// you either need to be auth'ed to the account or be an oper to do this
 		credStr, err = tx.Get(credKey)
-		return err
+		return nil
 	})
 
 	if err != nil {
@@ -657,14 +651,12 @@ func (am *AccountManager) saveLastSeen(account string, lastSeen map[string]time.
 		val = string(text)
 	}
 	err := am.server.store.Update(func(tx *buntdb.Tx) error {
-		var err error
-		switch val {
-		case "":
-			_, err = tx.Delete(key)
-		default:
-			_, _, err = tx.Set(key, val, nil)
+		if val != "" {
+			tx.Set(key, val, nil)
+		} else {
+			tx.Delete(key)
 		}
-		return err
+		return nil
 	})
 	if err != nil {
 		am.server.logger.Error("internal", "error persisting lastSeen", account, err.Error())
@@ -722,9 +714,9 @@ func (am *AccountManager) addRemoveCertfp(account, certfp string, add bool, hasP
 
 	credKey := fmt.Sprintf(keyAccountCredentials, cfAccount)
 	var credStr string
-	err = am.server.store.View(func(tx *buntdb.Tx) error {
+	am.server.store.View(func(tx *buntdb.Tx) error {
 		credStr, err = tx.Get(credKey)
-		return err
+		return nil
 	})
 
 	if err != nil {
@@ -741,18 +733,16 @@ func (am *AccountManager) addRemoveCertfp(account, certfp string, add bool, hasP
 		return errCredsExternallyManaged
 	}
 
-	switch add {
-	case true:
+	if add {
 		err = creds.AddCertfp(certfp)
-	default:
+	} else {
 		err = creds.RemoveCertfp(certfp)
 	}
-
 	if err != nil {
 		return err
 	}
 
-	if creds.Empty() {
+	if creds.Empty() && !hasPrivs {
 		return errEmptyCredentials
 	}
 

@@ -24,7 +24,8 @@ const (
 	// 'version' of the database schema
 	keySchemaVersion = "db.version"
 	// latest schema of the db
-	latestDbSchema = 23
+	latestDbSchema = 22
+
 	keyCloakSecret = "crypto.cloak_secret"
 )
 
@@ -1112,56 +1113,6 @@ func schemaChangeV21To22(config *Config, tx *buntdb.Tx) error {
 	return nil
 }
 
-func schemaChangeV22To23(config *Config, tx *buntdb.Tx) error {
-	type accountSettingsv23 struct {
-		NickEnforcement  NickEnforcementMethod
-		AllowBouncer     MulticlientAllowedSetting
-		AutoreplayMissed bool
-		AutoAway         PersistentStatus
-		GitAuth          bool
-		Email            string
-	}
-
-	var accounts []string
-	var serializedSettings []string
-	settingsPrefix := "account.settings "
-	err := tx.AscendGreaterOrEqual("", settingsPrefix, func(key, value string) bool {
-		if !strings.HasPrefix(key, settingsPrefix) {
-			return false
-		}
-		if value == "" {
-			return true
-		}
-		account := strings.TrimPrefix(key, settingsPrefix)
-		var settings accountSettingsv23
-		err := json.Unmarshal([]byte(value), &settings)
-		if err != nil {
-			log.Printf("error (v22-23) processing settings for %s: %v\n", account, err)
-			return true
-		}
-
-		b, err := json.Marshal(settings)
-
-		if err != nil {
-			log.Printf("error (v22-23) processing settings for %s: %v\n", account, err)
-			return true
-		}
-
-		accounts = append(accounts, account)
-		serializedSettings = append(serializedSettings, string(b))
-		return true
-	})
-
-	if err != nil {
-		log.Printf("error (v22-23) processing db transaction (invalid index): %v\n", err)
-	}
-
-	for i, account := range accounts {
-		tx.Set(settingsPrefix+account, serializedSettings[i], nil)
-	}
-	return nil
-}
-
 func getSchemaChange(initialVersion int) (result SchemaChange, ok bool) {
 	for _, change := range allChanges {
 		if initialVersion == change.InitialVersion {
@@ -1276,10 +1227,5 @@ var allChanges = []SchemaChange{
 		InitialVersion: 21,
 		TargetVersion:  22,
 		Changer:        schemaChangeV21To22,
-	},
-	{
-		InitialVersion: 22,
-		TargetVersion:  23,
-		Changer:        schemaChangeV22To23,
 	},
 }
