@@ -1,55 +1,47 @@
 package irc
 
 import (
-	"sync"
+	"sync/atomic"
 )
 
 type StatsValues struct {
-	Unknown   int // unregistered clients
-	Total     int // registered clients, including invisible
-	Max       int // high-water mark of registered clients
-	Invisible int
-	Operators int
+	Unknown   int32 // unregistered clients
+	Total     int32 // registered clients, including invisible
+	Max       int32 // high-water mark of registered clients
+	Invisible int32
+	Operators int32
 }
 
 // Stats tracks statistics for a running server
 type Stats struct {
 	StatsValues
-
-	mutex sync.Mutex
 }
 
 // Add Adds an unregistered client
 func (s *Stats) Add() {
-	s.mutex.Lock()
-	s.Unknown += 1
-	s.mutex.Unlock()
+	atomic.AddInt32(&s.Unknown, 1)
 }
 
 // AddRegistered Activates a registered client, e.g., for the initial attach to a persistent client
 func (s *Stats) AddRegistered(invisible, operator bool) {
-	s.mutex.Lock()
 	if invisible {
-		s.Invisible += 1
+		atomic.AddInt32(&s.Invisible, 1)
 	}
 	if operator {
-		s.Operators += 1
+		atomic.AddInt32(&s.Operators, 1)
 	}
-	s.Total += 1
+	atomic.AddInt32(&s.Total, 1)
 	s.setMax()
-	s.mutex.Unlock()
 }
 
 // Register Transition a client from unregistered to registered
 func (s *Stats) Register(invisible bool) {
-	s.mutex.Lock()
-	s.Unknown -= 1
+	atomic.AddInt32(&s.Unknown, -1)
 	if invisible {
-		s.Invisible += 1
+		atomic.AddInt32(&s.Invisible, 1)
 	}
-	s.Total += 1
+	atomic.AddInt32(&s.Total, 1)
 	s.setMax()
-	s.mutex.Unlock()
 }
 
 func (s *Stats) setMax() {
@@ -60,39 +52,32 @@ func (s *Stats) setMax() {
 
 // ChangeInvisible Modify the Invisible count
 func (s *Stats) ChangeInvisible(increment int) {
-	s.mutex.Lock()
-	s.Invisible += increment
-	s.mutex.Unlock()
+	atomic.AddInt32(&s.Invisible, int32(increment))
 }
 
 // ChangeOperators Modify the Operator count
 func (s *Stats) ChangeOperators(increment int) {
-	s.mutex.Lock()
-	s.Operators += increment
-	s.mutex.Unlock()
+	atomic.AddInt32(&s.Operators, int32(increment))
 }
 
 // Remove a user from the server
 func (s *Stats) Remove(registered, invisible, operator bool) {
-	s.mutex.Lock()
-	if registered {
-		s.Total -= 1
-	} else {
-		s.Unknown -= 1
+	switch registered {
+	case true:
+		atomic.AddInt32(&s.Total, -1)
+	default:
+		atomic.AddInt32(&s.Unknown, -1)
 	}
 	if invisible {
-		s.Invisible -= 1
+		atomic.AddInt32(&s.Invisible, -1)
 	}
 	if operator {
-		s.Operators -= 1
+		atomic.AddInt32(&s.Operators, -1)
 	}
-	s.mutex.Unlock()
 }
 
 // GetValues GetStats retrives total, invisible and oper count
 func (s *Stats) GetValues() (result StatsValues) {
-	s.mutex.Lock()
 	result = s.StatsValues
-	s.mutex.Unlock()
 	return
 }

@@ -433,12 +433,12 @@ func (server *Server) Lusers(client *Client, rb *ResponseBuffer) {
 	}
 
 	rb.Add(nil, server.name, RPL_LUSERCLIENT, nick, fmt.Sprintf(client.t("There are %[1]d users and %[2]d invisible on %[3]d server(s)"), stats.Total-stats.Invisible, stats.Invisible, 1))
-	rb.Add(nil, server.name, RPL_LUSEROP, nick, strconv.Itoa(stats.Operators), client.t("IRC Operators online"))
-	rb.Add(nil, server.name, RPL_LUSERUNKNOWN, nick, strconv.Itoa(stats.Unknown), client.t("unregistered connections"))
+	rb.Add(nil, server.name, RPL_LUSEROP, nick, strconv.Itoa(int(stats.Operators)), client.t("IRC Operators online"))
+	rb.Add(nil, server.name, RPL_LUSERUNKNOWN, nick, strconv.Itoa(int(stats.Unknown)), client.t("unregistered connections"))
 	rb.Add(nil, server.name, RPL_LUSERCHANNELS, nick, strconv.Itoa(numChannels), client.t("channels formed"))
 	rb.Add(nil, server.name, RPL_LUSERME, nick, fmt.Sprintf(client.t("I have %[1]d clients and %[2]d servers"), stats.Total, 0))
-	total := strconv.Itoa(stats.Total)
-	max := strconv.Itoa(stats.Max)
+	total := strconv.Itoa(int(stats.Total))
+	max := strconv.Itoa(int(stats.Max))
 	rb.Add(nil, server.name, RPL_LOCALUSERS, nick, total, max, fmt.Sprintf(client.t("Current local users %[1]s, max %[2]s"), total, max))
 	rb.Add(nil, server.name, RPL_GLOBALUSERS, nick, total, max, fmt.Sprintf(client.t("Current global users %[1]s, max %[2]s"), total, max))
 }
