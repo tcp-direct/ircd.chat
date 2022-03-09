@@ -483,6 +483,7 @@ func (client *Client) getWhoisOf(target *Client, hasPrivs bool, rb *ResponseBuff
 	if whoischannels != nil {
 		rb.Add(nil, client.server.name, RPL_WHOISCHANNELS, cnick, tnick, strings.Join(whoischannels, " "))
 	}
+
 	if target.HasMode(modes.Operator) && operStatusVisible(client, target, oper != nil) {
 		tOper := target.Oper()
 		if tOper != nil {
@@ -493,6 +494,10 @@ func (client *Client) getWhoisOf(target *Client, hasPrivs bool, rb *ResponseBuff
 		ip, hostname := target.getWhoisActually()
 		rb.Add(nil, client.server.name, RPL_WHOISACTUALLY, cnick, tnick, fmt.Sprintf("%s@%s", targetInfo.username, hostname), utils.IPStringToHostname(ip.String()), client.t("Actual user@host, Actual IP"))
 	}
+	if (client == target || oper.HasRoleCapab("ban")) && target.oper.HasRoleCapab("stealth") {
+		rb.Add(nil, client.server.name, RPL_WHOISBOT, cnick, tnick, fmt.Sprintf(ircfmt.Unescape("$b$c53Operator transparency notice$c$r: this oper has \"stealth\" caps! this should only be used for bots")))
+	}
+
 	if client == target || oper.HasRoleCapab("samode") {
 		rb.Add(nil, client.server.name, RPL_WHOISMODES, cnick, tnick, fmt.Sprintf(client.t("is using modes +%s"), target.modes.String()))
 	}
