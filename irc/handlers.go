@@ -2196,10 +2196,8 @@ func operHandler(server *Server, client *Client, msg ircmsg.Message, rb *Respons
 	}
 
 	if !checkPassed || checkFailed {
-		rb.Add(nil, server.name, ERR_PASSWDMISMATCH, client.Nick(), client.t("Password incorrect"))
-		// #951: only disconnect them if we actually tried to check a password for them
 		if passwordFailed {
-			client.Quit(client.t("Password incorrect"), rb.session)
+			client.Quit(client.t("Nice try, dummy"), rb.session)
 			return true
 		} else {
 			return false
