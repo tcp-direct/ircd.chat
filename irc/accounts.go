@@ -572,16 +572,18 @@ func (am *AccountManager) setPassword(accountName string, password string, hasPr
 		return err
 	}
 
-	err = am.server.store.Update(func(tx *buntdb.Tx) error {
-		curCredStr, err := tx.Get(credKey)
+	return am.server.store.Update(func(tx *buntdb.Tx) (dberr error) {
+		var curCredStr string
+		curCredStr, err = tx.Get(credKey)
+		if err != nil {
+			return
+		}
 		if credStr != curCredStr {
 			return errCASFailed
 		}
 		_, _, err = tx.Set(credKey, newCredStr, nil)
-		return err
+		return
 	})
-
-	return err
 }
 
 type alwaysOnChannelStatus struct {
@@ -714,18 +716,21 @@ func (am *AccountManager) addRemoveCertfp(account, certfp string, add bool, hasP
 
 	credKey := fmt.Sprintf(keyAccountCredentials, cfAccount)
 	var credStr string
-	am.server.store.View(func(tx *buntdb.Tx) error {
+
+	err = am.server.store.View(func(tx *buntdb.Tx) (err error) {
 		credStr, err = tx.Get(credKey)
-		return nil
+		return err
 	})
 
 	if err != nil {
+		am.server.logger.Warning("internal", err.Error(), account)
 		return errAccountDoesNotExist
 	}
 
 	var creds AccountCredentials
 	err = json.Unmarshal([]byte(credStr), &creds)
 	if err != nil {
+		am.server.logger.Error("internal", "unmarshal error: ", account, err.Error())
 		return err
 	}
 
@@ -733,44 +738,56 @@ func (am *AccountManager) addRemoveCertfp(account, certfp string, add bool, hasP
 		return errCredsExternallyManaged
 	}
 
-	if add {
+	switch {
+	case add:
 		err = creds.AddCertfp(certfp)
-	} else {
+	default:
 		err = creds.RemoveCertfp(certfp)
 	}
-	if err != nil {
-		return err
-	}
 
-	if creds.Empty() && !hasPrivs {
+	switch {
+	case err != nil:
+		am.server.logger.Error("internal", "certfp error: ", account, err.Error())
+		return err
+	case creds.Empty() && !hasPrivs:
 		return errEmptyCredentials
 	}
 
-	newCredStr, err := creds.Serialize()
-	if err != nil {
-		return err
+	newCredStr, serialErr := creds.Serialize()
+
+	if serialErr != nil {
+		am.server.logger.Error("internal", "certfp error: ", account, serialErr.Error())
+		return serialErr
 	}
 
 	certfpKey := fmt.Sprintf(keyCertToAccount, certfp)
-	err = am.server.store.Update(func(tx *buntdb.Tx) error {
-		curCredStr, err := tx.Get(credKey)
-		if credStr != curCredStr {
+	return am.server.store.Update(func(tx *buntdb.Tx) (err error) {
+		var curCredStr string
+		curCredStr, err = tx.Get(credKey)
+		switch {
+		case err != nil:
+			return
+		case credStr != curCredStr:
 			return errCASFailed
 		}
-		if add {
-			_, err = tx.Get(certfpKey)
-			if err != buntdb.ErrNotFound {
-				return errCertfpAlreadyExists
-			}
-			tx.Set(certfpKey, cfAccount, nil)
-		} else {
-			tx.Delete(certfpKey)
+		if !add {
+			_, err = tx.Delete(certfpKey)
+			return
+		}
+		_, err = tx.Get(certfpKey)
+		switch {
+		case err == buntdb.ErrNotFound:
+			_, _, err = tx.Set(certfpKey, cfAccount, nil)
+		case err != nil && err != buntdb.ErrNotFound:
+			am.server.logger.Debug("internal", account, err.Error())
+			err = errCertfpAlreadyExists
+		}
+		if err != nil {
+			return
 		}
 		_, _, err = tx.Set(credKey, newCredStr, nil)
-		return err
+		return
 	})
-
-	return err
 }
 
 func (am *AccountManager) dispatchCallback(client *Client, account string, callbackNamespace string, callbackValue string) (string, error) {
@@ -2278,7 +2295,7 @@ func (ac *AccountCredentials) RemoveCertfp(certfp string) (err error) {
 		return errNoop
 	}
 	ac.Certfps = newList
-	return nil
+	return
 }
 
 type MulticlientAllowedSetting int

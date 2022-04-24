@@ -903,7 +903,8 @@ func nsRegisterHandler(service *ircService, server *Server, client *Client, comm
 	if passphrase != "" {
 		cfPassphrase, err := Casefold(passphrase)
 		if err == nil && cfPassphrase == details.nickCasefolded {
-			service.Notice(rb, client.t("Usage: REGISTER <passphrase> [email]")) // #1179
+			service.Notice(rb, client.t("Usage: REGISTER <passphrase>")) // #1179
+			service.Notice(rb, client.t("Hint: First, use /nick and assume your desired account name."))
 			return
 		}
 	}

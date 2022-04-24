@@ -7,7 +7,7 @@ import "fmt"
 
 const (
 	// SemVer is the semantic version of ircd.
-	SemVer = "0.4.5a"
+	SemVer = "0.4.6"
 )
 
 var (

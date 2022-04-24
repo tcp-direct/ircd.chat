@@ -36,13 +36,14 @@ func performNickChange(server *Server, client *Client, target *Client, session *
 	isSanick := client != target
 
 	assignedNickname, err, back := client.server.clients.SetNick(target, session, nickname, false)
-	if err == errNicknameInUse {
+	switch err {
+	case errNicknameInUse:
 		if !isSanick {
 			rb.Add(nil, server.name, ERR_NICKNAMEINUSE, details.nick, utils.SafeErrorParam(nickname), client.t("Nickname is already in use"))
 		} else {
 			rb.Add(nil, server.name, "FAIL", "SANICK", "NICKNAME_IN_USE", utils.SafeErrorParam(nickname), client.t("Nickname is already in use"))
 		}
-	} else if err == errNicknameReserved {
+	case errNicknameReserved:
 		if !isSanick {
 			if !client.registered {
 				rb.Add(nil, server.name, ERR_NICKNAMEINUSE, details.nick, utils.SafeErrorParam(nickname), client.t("Nickname is reserved by a different account"))
@@ -51,13 +52,13 @@ func performNickChange(server *Server, client *Client, target *Client, session *
 		} else {
 			rb.Add(nil, server.name, "FAIL", "SANICK", "NICKNAME_RESERVED", utils.SafeErrorParam(nickname), client.t("Nickname is reserved by a different account"))
 		}
-	} else if err == errNicknameInvalid {
+	case errNicknameInvalid:
 		if !isSanick {
 			rb.Add(nil, server.name, ERR_ERRONEUSNICKNAME, details.nick, utils.SafeErrorParam(nickname), client.t("Erroneous nickname"))
 		} else {
 			rb.Add(nil, server.name, "FAIL", "SANICK", "NICKNAME_INVALID", utils.SafeErrorParam(nickname), client.t("Erroneous nickname"))
 		}
-	} else if err == errNickAccountMismatch {
+	case errNickAccountMismatch:
 		// this used to use ERR_NICKNAMEINUSE, but it displayed poorly in some clients;
 		// ERR_UNKNOWNERROR at least has a better chance of displaying our error text
 		if !isSanick {
@@ -65,19 +66,22 @@ func performNickChange(server *Server, client *Client, target *Client, session *
 		} else {
 			rb.Add(nil, server.name, "FAIL", "SANICK", "UNKNOWN_ERROR", utils.SafeErrorParam(nickname), client.t("This user's nickname and account name need to be equal"))
 		}
-	} else if err == errNickMissing {
+	case errNickMissing:
 		if !isSanick {
 			rb.Add(nil, server.name, ERR_NONICKNAMEGIVEN, details.nick, client.t("No nickname given"))
 		} else {
 			rb.Add(nil, server.name, "FAIL", "SANICK", "NICKNAME_INVALID", utils.SafeErrorParam(nickname), client.t("No nickname given"))
 		}
-	} else if err == errNoop {
+	case errNoop:
 		if !isSanick {
 			// no message
 		} else {
 			rb.Add(nil, server.name, "NOTE", "SANICK", "NOOP", utils.SafeErrorParam(nickname), client.t("Client already had the desired nickname"))
 		}
-	} else if err != nil {
+	default:
+		if err == nil {
+			break
+		}
 		client.server.logger.Error("internal", "couldn't change nick", nickname, err.Error())
 		if !isSanick {
 			rb.Add(nil, server.name, ERR_UNKNOWNERROR, details.nick, "NICK", client.t("Could not set or change nickname"))
@@ -85,6 +89,7 @@ func performNickChange(server *Server, client *Client, target *Client, session *
 			rb.Add(nil, server.name, "FAIL", "SANICK", "UNKNOWN_ERROR", utils.SafeErrorParam(nickname), client.t("Could not set or change nickname"))
 		}
 	}
+
 	if err != nil {
 		return err
 	}

@@ -1828,17 +1828,22 @@ func namesHandler(server *Server, client *Client, msg ircmsg.Message, rb *Respon
 }
 
 // NICK <nickname>
-func nickHandler(server *Server, client *Client, msg ircmsg.Message, rb *ResponseBuffer) bool {
-	if client.registered {
-		if client.account == "" && server.Config().Accounts.NickReservation.ForbidAnonNickChanges {
-			rb.Add(nil, server.name, ERR_UNKNOWNERROR, client.Nick(), client.t("You may not change your nickname"))
-			return false
-		}
-		performNickChange(server, client, client, nil, msg.Params[0], rb)
-	} else {
+func nickHandler(server *Server, client *Client, msg ircmsg.Message, rb *ResponseBuffer) (exiting bool) {
+	newNick := msg.Params[0]
+	switch {
+	case newNick == "" && !client.registered:
+		rb.Add(nil, server.name, ERR_NONICKNAMEGIVEN, "*", client.t("No nickname given"))
+	case !client.registered:
 		client.preregNick = msg.Params[0]
+	case client.account == "" && server.Config().Accounts.NickReservation.ForbidAnonNickChanges:
+		rb.Add(nil, server.name, ERR_UNKNOWNERROR, client.Nick(), client.t("You may not change your nickname"))
+	default:
+		nickErr := performNickChange(server, client, client, nil, newNick, rb)
+		if nickErr != nil {
+			server.logger.Error("internal", nickErr.Error(), client.preregNick)
+		}
 	}
-	return false
+	return
 }
 
 // check whether a PRIVMSG or NOTICE is too long to be relayed without truncation

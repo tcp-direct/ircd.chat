@@ -480,8 +480,8 @@ func (client *Client) getWhoisOf(target *Client, hasPrivs bool, rb *ResponseBuff
 	tnick := targetInfo.nick
 
 	whoischannels := client.whoisChannelsNames(target, rb.session.capabilities.Has(caps.MultiPrefix), oper.HasRoleCapab("sajoin"))
-	if whoischannels != nil {
-		rb.Add(nil, client.server.name, RPL_WHOISCHANNELS, cnick, tnick, strings.Join(whoischannels, " "))
+	for _, line := range utils.BuildTokenLines(400, whoischannels, " ") {
+		rb.Add(nil, client.server.name, RPL_WHOISCHANNELS, cnick, tnick, line)
 	}
 
 	if target.HasMode(modes.Operator) && operStatusVisible(client, target, oper != nil) {
