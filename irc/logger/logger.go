@@ -7,11 +7,15 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"sync"
 	"sync/atomic"
-	"time"
+
+	"github.com/rs/zerolog"
 )
+
+var zl *zerolog.Logger
 
 // Level represents the level to log messages at.
 type Level int
@@ -26,6 +30,13 @@ const (
 	// LogError represents errors.
 	LogError
 )
+
+var zlMap = map[Level]zerolog.Level{
+	LogDebug:   zerolog.DebugLevel,
+	LogInfo:    zerolog.InfoLevel,
+	LogWarning: zerolog.WarnLevel,
+	LogError:   zerolog.ErrorLevel,
+}
 
 var (
 	// LogLevelNames takes a config name and gives the real log level.
@@ -139,15 +150,22 @@ func (logger *Manager) ApplyConfig(config []LoggingConfig) error {
 		if ioEnabled && logConfig.Level == LogDebug {
 			atomic.StoreUint32(&logger.loggingRawIO, 1)
 		}
+
+		var outs = []io.Writer{zerolog.NewConsoleWriter()}
+
 		if sLogger.MethodFile.Enabled {
 			file, err := os.OpenFile(sLogger.MethodFile.Filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
 			if err != nil {
 				lastErr = fmt.Errorf("Could not open log file %s [%s]", sLogger.MethodFile.Filename, err.Error())
 			}
-			writer := bufio.NewWriter(file)
+			outs = append(outs, file)
 			sLogger.MethodFile.File = file
-			sLogger.MethodFile.Writer = writer
 		}
+		zw := zerolog.MultiLevelWriter(outs...)
+		bzw := bufio.NewWriter(zw)
+		z := zerolog.New(zw)
+		sLogger.ZL = &z
+		sLogger.MethodFile.Writer = bzw
 		logger.loggers = append(logger.loggers, sLogger)
 	}
 
@@ -206,6 +224,7 @@ type singleLogger struct {
 	Level           Level
 	Types           map[string]bool
 	ExcludedTypes   map[string]bool
+	ZL              *zerolog.Logger
 }
 
 func (logger *singleLogger) Close() error {
@@ -243,21 +262,19 @@ func (logger *singleLogger) Log(level Level, logType string, messageParts ...str
 	var rawBuf bytes.Buffer
 	// XXX magic number here: 10 is len("connect-ip"), the longest log category name
 	// in current use. it's not a big deal if this number gets out of date.
-	fmt.Fprintf(&rawBuf, "%s : %-5s : %-10s : ", time.Now().UTC().Format("2006-01-02T15:04:05.000Z"), LogLevelDisplayNames[level], logType)
-	for i, p := range messageParts {
-		rawBuf.WriteString(p)
-
-		if i != len(messageParts)-1 {
-			rawBuf.WriteString(" : ")
-		}
-	}
-	rawBuf.WriteRune('\n')
 
 	// output
 	if logger.MethodSTDOUT {
-		logger.stdoutWriteLock.Lock()
-		os.Stdout.Write(rawBuf.Bytes())
-		logger.stdoutWriteLock.Unlock()
+		switch level {
+		case LogInfo:
+			logger.ZL.Info().Strs("parts", messageParts).Msg(logType)
+		case LogWarning:
+			logger.ZL.Warn().Strs("parts", messageParts).Msg(logType)
+		case LogError:
+			logger.ZL.Error().Strs("parts", messageParts).Msg(logType)
+		case LogDebug:
+			logger.ZL.Debug().Strs("parts", messageParts).Msg(logType)
+		}
 	}
 	if logger.MethodSTDERR {
 		logger.stdoutWriteLock.Lock()

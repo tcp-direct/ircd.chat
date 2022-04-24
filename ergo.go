@@ -138,7 +138,9 @@ Options:
 			fmt.Println()
 		}
 		return
-	} else if arguments["mkcerts"].(bool) {
+	}
+
+	if arguments["mkcerts"].(bool) {
 		doMkcerts(arguments["--conf"].(string), arguments["--quiet"].(bool))
 		return
 	}
@@ -157,7 +159,8 @@ Options:
 		log.Fatal("Logger did not load successfully:", err.Error())
 	}
 
-	if arguments["initdb"].(bool) {
+	switch {
+	case arguments["initdb"].(bool):
 		err = irc.InitDB(config.Datastore.Path)
 		if err != nil {
 			log.Fatal("Error while initializing db:", err.Error())
@@ -165,7 +168,7 @@ Options:
 		if !arguments["--quiet"].(bool) {
 			log.Println("database initialized: ", config.Datastore.Path)
 		}
-	} else if arguments["upgradedb"].(bool) {
+	case arguments["upgradedb"].(bool):
 		err = irc.UpgradeDB(config)
 		if err != nil {
 			log.Fatal("Error while upgrading db:", err.Error())
@@ -173,19 +176,14 @@ Options:
 		if !arguments["--quiet"].(bool) {
 			log.Println("database upgraded: ", config.Datastore.Path)
 		}
-	} else if arguments["importdb"].(bool) {
+	case arguments["importdb"].(bool):
 		err = irc.ImportDB(config, arguments["<database.json>"].(string))
 		if err != nil {
 			log.Fatal("Error while importing db:", err.Error())
 		}
-	} else if arguments["run"].(bool) {
+	case arguments["run"].(bool):
 		if !arguments["--quiet"].(bool) {
 			logman.Info("server", fmt.Sprintf("%s starting", irc.Ver))
-		}
-
-		// warning if running a non-final version
-		if strings.Contains(irc.Ver, "unreleased") {
-			logman.Warning("server", "You are currently running an unreleased beta version of Ergo that may be unstable and could corrupt your database.\nIf you are running a production network, please download the latest build from https://ergo.chat/downloads.html and run that instead.")
 		}
 
 		server, err := irc.NewServer(config, logman)

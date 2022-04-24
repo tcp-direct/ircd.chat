@@ -19,12 +19,15 @@ require (
 	github.com/tidwall/buntdb v1.2.6
 	github.com/toorop/go-dkim v0.0.0-20201103131630-e1cd1a0a5208
 	github.com/xdg-go/scram v1.0.2
-	golang.org/x/crypto v0.0.0-20210415154028-4f45737414dc
+	golang.org/x/crypto v0.0.0-20211215165025-cf75a172585e
 	golang.org/x/text v0.3.6
 	gopkg.in/yaml.v2 v2.4.0
 )
 
-require git.tcp.direct/ircd/irc-go v0.0.0-20211219221708-8d8346959776
+require (
+	git.tcp.direct/ircd/irc-go v0.0.0-20211219221708-8d8346959776
+	github.com/rs/zerolog v1.26.1
+)
 
 require (
 	github.com/tidwall/btree v0.6.0 // indirect
@@ -35,7 +38,7 @@ require (
 	github.com/tidwall/rtred v0.1.2 // indirect
 	github.com/tidwall/tinyqueue v0.1.1 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
-	golang.org/x/sys v0.0.0-20201119102817-f84b799fce68 // indirect
+	golang.org/x/sys v0.0.0-20210809222454-d867a43fc93e // indirect
 	golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1 // indirect
 )
 
