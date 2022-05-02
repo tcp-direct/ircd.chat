@@ -603,7 +603,6 @@ type Config struct {
 		ClientLength     int              `yaml:"client-length"`
 		AutoresizeWindow custime.Duration `yaml:"autoresize-window"`
 		AutoreplayOnJoin int              `yaml:"autoreplay-on-join"`
-		ChathistoryMax   int              `yaml:"chathistory-maxmessages"`
 		ZNCMax           int              `yaml:"znc-maxmessages"`
 		Restrictions     struct {
 			ExpireTime custime.Duration `yaml:"expire-time"`
@@ -1406,8 +1405,6 @@ func LoadConfig(filename string) (config *Config, err error) {
 	// of this detail
 	config.History.ChannelLength = 0
 	config.History.ClientLength = 0
-	config.Server.supportedCaps.Disable(caps.Chathistory)
-	config.Server.supportedCaps.Disable(caps.EventPlayback)
 	config.History.Persistent.Enabled = false
 	config.History.Persistent.UnregisteredChannels = false
 	config.History.Persistent.RegisteredChannels = PersistentDisabled

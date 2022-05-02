@@ -7,7 +7,7 @@ package caps
 
 const (
 	// number of recognized capabilities:
-	numCapabs = 27
+	numCapabs = 23
 	// length of the uint64 array that represents the bitset:
 	bitsetLen = 1
 )
@@ -44,14 +44,6 @@ const (
 	// ChannelRename is the draft IRCv3 capability named "draft/channel-rename":
 	// https://ircv3.net/specs/extensions/channel-rename
 	ChannelRename Capability = iota
-
-	// Chathistory is the proposed IRCv3 capability named "draft/chathistory":
-	// https://github.com/ircv3/ircv3-specifications/pull/393
-	Chathistory Capability = iota
-
-	// EventPlayback is the proposed IRCv3 capability named "draft/event-playback":
-	// https://github.com/ircv3/ircv3-specifications/pull/362
-	EventPlayback Capability = iota
 
 	// ExtendedMonitor is the draft IRCv3 capability named "draft/extended-monitor":
 	// https://github.com/ircv3/ircv3-specifications/pull/466
@@ -125,8 +117,6 @@ var (
 		"chghost",
 		"draft/account-registration",
 		"draft/channel-rename",
-		"draft/chathistory",
-		"draft/event-playback",
 		"draft/extended-monitor",
 		"draft/languages",
 		"draft/multiline",
