@@ -18,6 +18,7 @@ import (
 
 	"github.com/docopt/docopt-go"
 
+	"git.tcp.direct/ircd/ircd/extra"
 	"git.tcp.direct/ircd/ircd/irc"
 	"git.tcp.direct/ircd/ircd/irc/logger"
 	"git.tcp.direct/ircd/ircd/irc/mkcerts"
@@ -92,8 +93,28 @@ func doMkcerts(configFile string, quiet bool) {
 	}
 }
 
+func getPassTTY() (pass string) {
+	fmt.Print("Enter Password: ")
+	pass = getPassword()
+	fmt.Print("\n")
+	fmt.Print("Reenter Password: ")
+	confirm := getPassword()
+	fmt.Print("\n")
+	if confirm != pass {
+		log.Fatal("passwords do not match")
+	}
+	return
+}
+
+func printBanner() {
+	for line := range extra.Banner() {
+		println(line)
+	}
+}
+
 func main() {
 	irc.SetVersionString(version, commit)
+	printBanner()
 	usage := `ergo.
 Usage:
 	ergo initdb [--conf <filename>] [--quiet]
@@ -116,26 +137,19 @@ Options:
 	if arguments["genpasswd"].(bool) {
 		var password string
 		fd := int(os.Stdin.Fd())
-		if terminal.IsTerminal(fd) {
-			fmt.Print("Enter Password: ")
+		if !terminal.IsTerminal(fd) {
 			password = getPassword()
-			fmt.Print("\n")
-			fmt.Print("Reenter Password: ")
-			confirm := getPassword()
-			fmt.Print("\n")
-			if confirm != password {
-				log.Fatal("passwords do not match")
-			}
 		} else {
-			password = getPassword()
+			password = getPassTTY()
 		}
+
 		hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
 		if err != nil {
 			log.Fatal("encoding error:", err.Error())
 		}
-		fmt.Print(string(hash))
+		println(string(hash))
 		if terminal.IsTerminal(fd) {
-			fmt.Println()
+			println()
 		}
 		return
 	}

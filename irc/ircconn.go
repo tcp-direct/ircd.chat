@@ -15,9 +15,7 @@ import (
 	"git.tcp.direct/ircd/ircd/irc/utils"
 )
 
-const (
-	initialBufferSize = 1024
-)
+const initialBufferSize = 1024
 
 var (
 	crlf = []byte{'\r', '\n'}

@@ -26,6 +26,7 @@ require (
 
 require (
 	git.tcp.direct/ircd/irc-go v0.0.0-20211219221708-8d8346959776
+	git.tcp.direct/kayos/common/squish v0.0.0-20220210125455-40e3d2190a52
 	github.com/rs/zerolog v1.26.1
 )
 

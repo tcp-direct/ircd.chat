@@ -2,6 +2,8 @@ code.cloudfoundry.org/bytefmt v0.0.0-20200131002437-cf55d5288a48 h1:/EMHruHCFXR9
 code.cloudfoundry.org/bytefmt v0.0.0-20200131002437-cf55d5288a48/go.mod h1:wN/zk7mhREp/oviagqUXY3EwuHhWyOvAdsn5Y4CzOrc=
 git.tcp.direct/ircd/irc-go v0.0.0-20211219221708-8d8346959776 h1:qLBcqf5BOln1+up1cPFlWhDtcl6llzSr4d/51Xsku20=
 git.tcp.direct/ircd/irc-go v0.0.0-20211219221708-8d8346959776/go.mod h1:F0aN7ZC3rnp38KQvFUTMmjC+cT0/ecQEH23j6FKViOk=
+git.tcp.direct/kayos/common/squish v0.0.0-20220210125455-40e3d2190a52 h1:lpyyjVo/je2oSNp+ecb13oHtDDWELmsxm8WA5XZjFGw=
+git.tcp.direct/kayos/common/squish v0.0.0-20220210125455-40e3d2190a52/go.mod h1:QZ5ZpL7EsqjteMmv5C5zNMlttUpYes2RrA1ILI/Ql2w=
 github.com/GehirnInc/crypt v0.0.0-20200316065508-bb7000b8a962 h1:KeNholpO2xKjgaaSyd+DyQRrsQjhbSeS7qe4nEw8aQw=
 github.com/GehirnInc/crypt v0.0.0-20200316065508-bb7000b8a962/go.mod h1:kC29dT1vFpj7py2OvG1khBdQpo3kInWP+6QipLbdngo=
 github.com/coreos/go-systemd/v22 v22.3.2/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=

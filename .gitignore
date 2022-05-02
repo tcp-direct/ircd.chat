@@ -96,19 +96,15 @@ _testmain.go
 
 
 ### custom ###
-/_site/
-/.vscode/*
-/ircd*
-/web-*
-/web.*
-/ssl.*
-/tls.*
-/ergo
-/build/*
-_test
-ergo.prof
-ergo.mprof
-/dist
 *.pem
-.dccache
 .idea
+*.conf
+*.yaml
+*.toml
+*.db
+*.new
+ircd
+ircd.1*
+ircd.0*
+*.log
+*.bak

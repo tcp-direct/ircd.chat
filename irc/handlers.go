@@ -25,6 +25,7 @@ import (
 	"github.com/ergochat/irc-go/ircutils"
 	"golang.org/x/crypto/bcrypt"
 
+	"git.tcp.direct/ircd/ircd/extra"
 	"git.tcp.direct/ircd/ircd/irc/caps"
 	"git.tcp.direct/ircd/ircd/irc/custime"
 	"git.tcp.direct/ircd/ircd/irc/flatip"
@@ -199,13 +200,19 @@ func authenticateHandler(server *Server, client *Client, msg ircmsg.Message, rb 
 	// continue existing sasl session
 	rawData := msg.Params[0]
 
-	if len(rawData) > 400 {
+	// https://ircv3.net/specs/extensions/sasl-3.1:
+	// "The response is encoded in Base64 (RFC 4648), then split to 400-byte chunks,
+	// and each chunk is sent as a separate AUTHENTICATE command."
+	saslMaxArgLength := 400
+
+	switch {
+	case len(rawData) > saslMaxArgLength:
 		rb.Add(nil, server.name, ERR_SASLTOOLONG, details.nick, client.t("SASL message too long"))
 		session.sasl.Clear()
 		return false
-	} else if len(rawData) == 400 {
+	case len(rawData) == saslMaxArgLength:
 		// allow 4 'continuation' lines before rejecting for length
-		if len(session.sasl.value) >= 400*4 {
+		if len(session.sasl.value) >= saslMaxArgLength*4 {
 			rb.Add(nil, server.name, ERR_SASLFAIL, details.nick, client.t("SASL authentication failed: Passphrase too long"))
 			session.sasl.Clear()
 			return false
@@ -903,7 +910,7 @@ func extjwtHandler(server *Server, client *Client, msg ircmsg.Message, rb *Respo
 	tokenString, err := sConfig.Sign(claims)
 
 	if err == nil {
-		maxTokenLength := 400
+		maxTokenLength := maxLastArgLength
 
 		for maxTokenLength < len(tokenString) {
 			rb.Add(nil, server.name, "EXTJWT", msg.Params[0], serviceName, "*", tokenString[:maxTokenLength])
@@ -957,6 +964,11 @@ func infoHandler(server *Server, client *Client, msg ircmsg.Message, rb *Respons
 	for _, line := range infoString1 {
 		rb.Add(nil, server.name, RPL_INFO, nick, line)
 	}
+	bnr := extra.Banner()
+	for line := range bnr {
+		rb.Add(nil, server.name, RPL_INFO, nick, string(line))
+	}
+	close(bnr)
 	rb.Add(nil, server.name, RPL_INFO, nick, "")
 	rb.Add(nil, server.name, RPL_ENDOFINFO, nick, client.t("End of /INFO"))
 	return false
@@ -2880,7 +2892,7 @@ func userhostHandler(server *Server, client *Client, msg ircmsg.Message, rb *Res
 	returnedClients := make(ClientSet)
 
 	var tl utils.TokenLineBuilder
-	tl.Initialize(400, " ")
+	tl.Initialize(maxLastArgLength, " ")
 	for i, nickname := range msg.Params {
 		if i >= 10 {
 			break
