@@ -474,8 +474,13 @@ func (am *AccountManager) Register(client *Client, account string, callbackNames
 		am.Unregister(casefoldedAccount, true)
 		return &registrationCallbackError{underlying: err}
 	} else {
-		am.server.logger.Info("accounts",
-			fmt.Sprintf("nickname %s registered account %s, pending verification", client.Nick(), account))
+		// TODO: Implement contextual tracking of operator actions.
+		// This is a hacky fix for https://git.tcp.direct/ircd/ircd/issues/6
+		logmsg := fmt.Sprintf("the account %s has been registered", account)
+		if callbackNamespace != "admin" && client != nil {
+			logmsg = fmt.Sprintf("nickname %s registered account %s, pending verification", client.Nick(), account)
+		}
+		am.server.logger.Info("accounts", logmsg)
 		return am.server.store.Update(func(tx *buntdb.Tx) error {
 			_, _, err = tx.Set(verificationCodeKey, code, setOptions)
 			return err
