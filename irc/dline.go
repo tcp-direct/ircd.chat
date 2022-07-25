@@ -204,18 +204,17 @@ func (dm *DLineManager) RemoveNetwork(network flatip.IPNet) error {
 
 	id := network
 
-	present := func() bool {
-		dm.Lock()
-		defer dm.Unlock()
-		_, ok := dm.networks[id]
-		delete(dm.networks, id)
-		dm.cancelTimer(id)
-		return ok
-	}()
-
-	if !present {
+	dm.RLock()
+	_, ok := dm.networks[id]
+	dm.RUnlock()
+	if !ok {
 		return errNoExistingBan
 	}
+
+	dm.Lock()
+	delete(dm.networks, id)
+	dm.Unlock()
+	dm.cancelTimer(id)
 
 	return dm.unpersistDline(id)
 }
