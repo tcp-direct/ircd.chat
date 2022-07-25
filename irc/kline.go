@@ -113,7 +113,7 @@ func (km *KLineManager) addMaskInternal(mask string, info IPBanInfo) {
 
 	// set up new expiration timer
 	timeCreated := info.TimeCreated
-	processExpiration := func() {
+	km.expirationTimers[mask] = time.AfterFunc(timeLeft, func() {
 		km.Lock()
 		defer km.Unlock()
 
@@ -122,8 +122,7 @@ func (km *KLineManager) addMaskInternal(mask string, info IPBanInfo) {
 			delete(km.entries, mask)
 			delete(km.expirationTimers, mask)
 		}
-	}
-	km.expirationTimers[mask] = time.AfterFunc(timeLeft, processExpiration)
+	})
 }
 
 func (km *KLineManager) cancelTimer(id string) {
