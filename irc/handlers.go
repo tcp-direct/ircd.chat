@@ -3121,6 +3121,28 @@ func (client *Client) rplWhoReply(channel *Channel, target *Client, rb *Response
 	rb.Add(nil, client.server.name, numeric, params...)
 }
 
+// Another client is a friend if they share at least one channel, or they are the same client.
+func isFriend(client, otherClient *Client) bool {
+	if client == otherClient {
+		return true
+	}
+
+	userChannels := make(ChannelSet)
+	for _, channel := range client.Channels() {
+		userChannels[channel] = empty{}
+	}
+
+	for _, channel := range otherClient.Channels() {
+		if channel.flags.HasMode(modes.Auditorium) {
+			return false // TODO this should respect +v etc.
+		}
+		if _, present := userChannels[channel]; present {
+			return true
+		}
+	}
+	return false
+}
+
 // WHO <mask> [<filter>%<fields>,<type>]
 func whoHandler(server *Server, client *Client, msg ircmsg.Message, rb *ResponseBuffer) bool {
 	origMask := utils.SafeErrorParam(msg.Params[0])
@@ -3210,25 +3232,8 @@ func whoHandler(server *Server, client *Client, msg ircmsg.Message, rb *Response
 			userChannels[channel] = empty{}
 		}
 
-		// Another client is a friend if they share at least one channel, or they are the same client.
-		isFriend := func(otherClient *Client) bool {
-			if client == otherClient {
-				return true
-			}
-
-			for _, channel := range otherClient.Channels() {
-				if channel.flags.HasMode(modes.Auditorium) {
-					return false // TODO this should respect +v etc.
-				}
-				if _, present := userChannels[channel]; present {
-					return true
-				}
-			}
-			return false
-		}
-
 		for mclient := range server.clients.FindAll(mask) {
-			if hasPrivs || !mclient.HasMode(modes.Invisible) || isFriend(mclient) {
+			if hasPrivs || !mclient.HasMode(modes.Invisible) || isFriend(client, mclient) {
 				client.rplWhoReply(nil, mclient, rb, canSeeIPs, oper != nil, includeRFlag, isWhox, fields, whoType)
 			}
 		}

@@ -136,33 +136,9 @@ CAPDEFS = [
         standard="IRCv3",
     ),
     CapDef(
-        identifier="ZNCSelfMessage",
-        name="znc.in/self-message",
-        url="https://wiki.znc.in/Query_buffers",
-        standard="ZNC vendor",
-    ),
-    CapDef(
-        identifier="EventPlayback",
-        name="draft/event-playback",
-        url="https://github.com/ircv3/ircv3-specifications/pull/362",
-        standard="proposed IRCv3",
-    ),
-    CapDef(
-        identifier="ZNCPlayback",
-        name="znc.in/playback",
-        url="https://wiki.znc.in/Playback",
-        standard="ZNC vendor",
-    ),
-    CapDef(
         identifier="Multiline",
         name="draft/multiline",
         url="https://github.com/ircv3/ircv3-specifications/pull/398",
-        standard="proposed IRCv3",
-    ),
-    CapDef(
-        identifier="Chathistory",
-        name="draft/chathistory",
-        url="https://github.com/ircv3/ircv3-specifications/pull/393",
         standard="proposed IRCv3",
     ),
     CapDef(
